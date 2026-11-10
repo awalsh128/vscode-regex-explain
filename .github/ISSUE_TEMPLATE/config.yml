@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Extension limitations
+    url: https://github.com/awalsh128/vscode-regex-explain/tree/main/packages/vscode-regex-explain#limitations
+    about: Supported regex syntax, languages, and the backtracking check.

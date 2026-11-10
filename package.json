@@ -1,0 +1,110 @@
+{
+  "name": "regex-explain-monorepo",
+  "private": true,
+  "description": "Explain regular expressions in plain English: a TypeScript library and a VS Code extension",
+  "version": "0.0.0",
+  "brokenversions": [],
+  "author": {
+    "name": "awalsh128"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/awalsh128/vscode-regex-explain#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/awalsh128/vscode-regex-explain"
+  },
+  "bugs": {
+    "url": "https://github.com/awalsh128/vscode-regex-explain/issues"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "workspaces": [
+    "packages/regex-explain"
+  ],
+  "prettier": {
+    "printWidth": 100,
+    "tabWidth": 2,
+    "useTabs": false,
+    "semi": true,
+    "singleQuote": false,
+    "trailingComma": "es5",
+    "bracketSpacing": true,
+    "arrowParens": "always",
+    "proseWrap": "always",
+    "plugins": [
+      "prettier-plugin-jsdoc"
+    ],
+    "jsdocPreferCodeFences": true,
+    "jsdocSeparateReturnsFromParam": true,
+    "jsdocSeparateTagGroups": true
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ]
+  },
+  "scripts": {
+    "prepare": "husky",
+    "clean": "rimraf out packages/*/out packages/*/dist packages/*/*.vsix",
+    "build:lib": "npm run build -w packages/regex-explain",
+    "compile": "npm run clean && npm run build:lib && tsc -b && npm run bundle --prefix packages/vscode-regex-explain",
+    "watch": "tsc -b -w",
+    "check": "tsx scripts/dev.ts check",
+    "lint": "eslint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "ops": "tsx scripts/ops.ts",
+    "preview-panel": "tsx scripts/preview-panel.ts",
+    "test": "npm run compile && npm run test:unit && npm run test:integration",
+    "test:unit": "mocha \"packages/*/out/test/*.test.js\"",
+    "test:integration": "node packages/vscode-regex-explain/out/test/integration/runTest.js",
+    "test:scripts": "mocha --require tsx \"scripts/test/*.test.ts\"",
+    "package": "npm run compile && npm run package --prefix packages/vscode-regex-explain",
+    "setup": "npm install && tsx scripts/dev.ts setup",
+    "sync-labels": "tsx scripts/sync-labels.ts",
+    "refreshlock": "npm i --package-lock-only"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
+    "@eslint/js": "^10.0.1",
+    "@octokit/rest": "^22.0.1",
+    "@stylistic/eslint-plugin": "^5.10.0",
+    "@types/chai": "^5.2.3",
+    "@types/chai-as-promised": "^8.0.2",
+    "@types/js-yaml": "^4.0.9",
+    "@types/mocha": "^10.0.10",
+    "@types/mustache": "^4.2.6",
+    "@types/node": "^22.20.5",
+    "@types/sinon": "^22.0.2",
+    "@types/vscode": "~1.100.0",
+    "@vscode-elements/elements": "^2.5.1",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/tree-sitter-wasm": "^0.3.1",
+    "@vscode/vsce": "^4.1.0",
+    "chai": "^6.3.0",
+    "chai-as-promised": "^8.0.2",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.14.0",
+    "eslint-plugin-functional": "^10.0.1",
+    "eslint-plugin-mocha": "^12.0.2",
+    "eslint-plugin-simple-import-sort": "^14.0.0",
+    "husky": "^9.1.7",
+    "js-yaml": "^5.5.0",
+    "mocha": "^12.0.3",
+    "mustache": "^4.2.0",
+    "prettier": "^3.9.10",
+    "prettier-plugin-jsdoc": "^1.8.1",
+    "rimraf": "^6.1.4",
+    "shiki": "^4.6.0",
+    "sinon": "^22.1.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.72.1"
+  },
+  "overrides": {
+    "glob": ">=14.0.3",
+    "minimatch": ">=11.0.2"
+  }
+}

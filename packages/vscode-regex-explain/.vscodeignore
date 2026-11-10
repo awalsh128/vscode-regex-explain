@@ -1,0 +1,15 @@
+# esbuild bundles the extension and the library into dist/extension.js, the match worker into
+# dist/matchWorker.js, and the panel script into dist/webview.js; bundle.mjs copies the panel's
+# templates and stylesheet and the tree-sitter runtime and grammars next to them. Neither
+# node_modules/ nor the tsc output in out/ ships.
+**
+!dist/extension.js
+!dist/matchWorker.js
+!dist/webview.js
+!dist/*.wasm
+!dist/*.html
+!dist/panel.css
+!package.json
+!README.md
+!LICENSE
+!images/logo.png

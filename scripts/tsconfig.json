@@ -1,0 +1,19 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "nodenext",
+    "outDir": "../out/scripts",
+    "rootDir": ".",
+    "composite": true,
+    "tsBuildInfoFile": "../out/.tsbuildinfo.scripts"
+  },
+  "include": ["**/*"],
+  "references": [
+    {
+      "path": "../packages/regex-explain"
+    },
+    {
+      "path": "../packages/vscode-regex-explain"
+    }
+  ]
+}

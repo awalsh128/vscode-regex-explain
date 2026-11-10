@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'none'; style-src {{cspSource}} 'unsafe-inline'; script-src 'nonce-{{nonce}}'; font-src {{cspSource}};">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{{styleUri}}">
+  <title>Regex Explanation</title>
+</head>
+
+<body>
+  <main>
+    <section aria-labelledby="explanation-heading">
+      <h1 id="explanation-heading">RegEx Explanation</h1>
+      <p class="literal"><code class="regex">{{{literalHtml}}}</code>
+        <a class="regex101" href="{{regex101Url}}"
+          title="Open this regex and the input text in regex101.com">Open in regex101</a></p>
+      {{#error}}
+      <p class="error" role="alert"><strong>Invalid regular expression:</strong> {{message}}</p>
+      {{#caret}}
+      <pre class="caret">{{caret}}</pre>
+      {{/caret}}
+      {{/error}}
+      {{^error}}
+      {{#warnings}}
+      <div class="warning" role="note"><strong>Warning:</strong> {{> parts}}.{{#fixHtml}} Equivalent safe pattern:
+        <code class="regex">{{{fixHtml}}}</code>{{/fixHtml}}
+      </div>
+      {{/warnings}}
+      <vscode-table class="steps" zebra bordered-columns resizable responsive breakpoint="400"
+        columns='["35%", "65%"]'>
+        <vscode-table-header slot="header">
+          <vscode-table-header-cell>Code Point</vscode-table-header-cell>
+          <vscode-table-header-cell>Explanation</vscode-table-header-cell>
+        </vscode-table-header>
+        <vscode-table-body slot="body">
+          {{#rows}}
+          <vscode-table-row>
+            <vscode-table-cell><code class="regex" style="margin-left: {{indent}}em">{{{highlightedCode}}}</code></vscode-table-cell>
+            <vscode-table-cell>{{> parts}}</vscode-table-cell>
+          </vscode-table-row>
+          {{/rows}}
+        </vscode-table-body>
+      </vscode-table>
+      <p class="length"><em>{{length}}</em></p>
+      {{#hasFlags}}
+      <h2>Flags</h2>
+      <ul class="flags">
+        {{#flags}}
+        <li><code>{{flag}}</code> <em>{{name}}</em>: {{> parts}}</li>
+        {{/flags}}
+      </ul>
+      {{/hasFlags}}
+      {{/error}}
+    </section>
+    <section class="input-section" aria-labelledby="input-heading">
+      <h2 id="input-heading">Input</h2>
+      <vscode-checkbox class="entries-toggle"
+        label="Match each line as a separate entry"></vscode-checkbox>
+      {{#multiline}}
+      <p class="note multiline-note" role="note"><strong>Note:</strong> This regex uses multiline mode,
+        so <code>^</code> and <code>$</code> match at the start and end of every line, and the input is
+        matched as multiple lines rather than one string.</p>
+      {{/multiline}}
+      <vscode-split-layout class="input-layout" split="vertical" initial-handle-position="60%"
+        min-start="160px" min-end="160px">
+        <div slot="start" class="editor">
+          <pre class="gutter" aria-hidden="true">1</pre>
+          <vscode-textarea class="input" monospace resize="none" spellcheck="false"
+            placeholder="Type or paste text to match" aria-label="Text to match"></vscode-textarea>
+        </div>
+        <div slot="end" class="results">
+          <h3>Match results</h3>
+          <p class="summary" aria-live="polite"></p>
+          <div class="result-table" hidden>
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col" class="line-col">Line</th>
+                  <th scope="col" class="entry-col">Entry</th>
+                  <th scope="col">Match</th>
+                </tr>
+              </thead>
+              <tbody class="result-rows"></tbody>
+            </table>
+          </div>
+        </div>
+      </vscode-split-layout>
+      <p class="engine">Matched with JavaScript <code>RegExp</code>.</p>
+    </section>
+  </main>
+  <!-- Cloned by the panel script for each result row, match, and capture group. -->
+  <template id="result-row">
+    <tr>
+      <td class="line-col"></td>
+      <td class="entry-col"><code class="entry"></code></td>
+      <td class="match-col"></td>
+    </tr>
+  </template>
+  <template id="match-item">
+    <div class="match-item">
+      <button type="button" class="match" title="Select this match in the input"><code
+          class="text"></code></button>
+      <dl class="groups"></dl>
+    </div>
+  </template>
+  <template id="match-group">
+    <dt></dt>
+    <dd></dd>
+  </template>
+  <script nonce="{{nonce}}" src="{{scriptUri}}"></script>
+</body>
+
+</html>

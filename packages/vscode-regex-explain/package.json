@@ -1,0 +1,135 @@
+{
+  "name": "regex-explain",
+  "private": true,
+  "displayName": "Regex Explain",
+  "description": "Explain regular expressions in plain English on hover, in many languages, with catastrophic backtracking warnings",
+  "version": "0.0.0",
+  "publisher": "awalsh128",
+  "author": {
+    "name": "awalsh128"
+  },
+  "license": "Apache-2.0",
+  "icon": "images/logo.png",
+  "homepage": "https://github.com/awalsh128/vscode-regex-explain/tree/main/packages/vscode-regex-explain#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/awalsh128/vscode-regex-explain",
+    "directory": "packages/vscode-regex-explain"
+  },
+  "bugs": {
+    "url": "https://github.com/awalsh128/vscode-regex-explain/issues"
+  },
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters",
+    "Other"
+  ],
+  "keywords": [
+    "regex",
+    "regexp",
+    "regular expression",
+    "explain",
+    "redos"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "vsce": {
+    "dependencies": false
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "regexExplain.explain",
+        "title": "Regex Explain: Explain Regex"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "regexExplain.explain"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "regexExplain.explain",
+          "group": "navigation@100"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Regex Explain",
+      "properties": {
+        "regexExplain.hover.enabled": {
+          "type": "boolean",
+          "scope": "language-overridable",
+          "default": true,
+          "order": 1,
+          "markdownDescription": "Show an explanation when hovering a regex in code, or a selection in any file."
+        },
+        "regexExplain.hover.languages": {
+          "type": "array",
+          "scope": "language-overridable",
+          "items": {
+            "type": "string",
+            "enum": [
+              "javascript",
+              "javascriptreact",
+              "typescript",
+              "typescriptreact",
+              "vue",
+              "svelte",
+              "python",
+              "go",
+              "rust",
+              "java",
+              "csharp",
+              "ruby",
+              "php"
+            ]
+          },
+          "default": [
+            "javascript",
+            "javascriptreact",
+            "typescript",
+            "typescriptreact",
+            "vue",
+            "svelte",
+            "python",
+            "go",
+            "rust",
+            "java",
+            "csharp",
+            "ruby",
+            "php"
+          ],
+          "order": 2,
+          "markdownDescription": "Language IDs in which regexes in code are found automatically, on hover and by the explanation panel as the cursor moves: regex literals, and string literals passed to regex APIs such as `new RegExp()`, `re.compile()`, or `Pattern.compile()`. Selected text is explained in every language."
+        },
+        "regexExplain.checkBacktracking": {
+          "type": "boolean",
+          "scope": "language-overridable",
+          "default": true,
+          "order": 3,
+          "markdownDescription": "Warn about patterns that can take exponential or polynomial time to reject some inputs (catastrophic backtracking, ReDoS)."
+        },
+        "regexExplain.panel.follow": {
+          "type": "boolean",
+          "scope": "language-overridable",
+          "default": true,
+          "order": 4,
+          "markdownDescription": "While the explanation panel is open, show the regex you move the cursor into, select, hover, or edit. When off, the panel keeps its regex until you explain another."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "bundle": "node bundle.mjs",
+    "package": "vsce package",
+    "vscode:prepublish": "npm run bundle"
+  }
+}

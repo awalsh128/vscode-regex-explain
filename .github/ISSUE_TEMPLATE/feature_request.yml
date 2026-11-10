@@ -1,0 +1,38 @@
+name: Feature request
+description: Suggest an improvement to the library or the extension
+labels: [enhancement]
+assignees: [awalsh128]
+body:
+  - type: dropdown
+    id: package
+    attributes:
+      label: Package
+      options:
+        - VS Code extension
+        - npm library (regex-explain)
+        - Both
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do, and what gets in the way?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description:
+        How should it behave? Include example regexes and the explanation you would expect.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Workarounds you use today or other approaches you considered.

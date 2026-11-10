@@ -1,0 +1,22 @@
+# Build outputs
+**/out
+**/dist
+*.vsix
+*.tsbuildinfo
+
+# Dependencies
+**/node_modules
+
+# VS Code test downloads and profiles
+.vscode-test/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local

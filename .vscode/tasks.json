@@ -1,0 +1,54 @@
+// See https://go.microsoft.com/fwlink/?LinkId=733558 for the tasks.json format.
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "npm",
+      "script": "watch",
+      "problemMatcher": "$tsc-watch",
+      "isBackground": true,
+      "presentation": { "reveal": "never" },
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      "label": "Run All Tests",
+      "type": "npm",
+      "script": "test",
+      "problemMatcher": [],
+      "group": { "kind": "test", "isDefault": true },
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "Run Integration Test (by name)",
+      "type": "shell",
+      "command": "npm run compile && MOCHA_GREP='${input:testName}' npm run test:integration",
+      "problemMatcher": [],
+      "group": "test",
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "Preview Panel",
+      "detail": "Serve the explanation panel with mock data at http://127.0.0.1:8765/, rebuilding on changes",
+      "type": "npm",
+      "script": "preview-panel",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "Package Extension",
+      "type": "npm",
+      "script": "package",
+      "problemMatcher": [],
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "testName",
+      "type": "promptString",
+      "description": "Test name or pattern to run (regex supported)"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+// Launch configurations. "Run Extension" compiles, then opens the extension in a new window on the
+// test workspace. See https://go.microsoft.com/fwlink/?linkid=830387.
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "${workspaceFolder}/packages/vscode-regex-explain/test-workspace",
+        "--extensionDevelopmentPath=${workspaceFolder}/packages/vscode-regex-explain"
+      ],
+      "outFiles": ["${workspaceFolder}/packages/vscode-regex-explain/dist/**/*.js"],
+      "preLaunchTask": "npm: compile"
+    },
+    {
+      "name": "Debug Extension (no other extensions)",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "${workspaceFolder}/packages/vscode-regex-explain/test-workspace",
+        "--extensionDevelopmentPath=${workspaceFolder}/packages/vscode-regex-explain",
+        "--disable-extensions"
+      ],
+      "outFiles": ["${workspaceFolder}/packages/vscode-regex-explain/dist/**/*.js"],
+      "preLaunchTask": "npm: compile",
+      "sourceMaps": true,
+      "smartStep": true,
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "name": "Extension Tests",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "${workspaceFolder}/packages/vscode-regex-explain/test-workspace",
+        "--disable-extensions",
+        "--extensionDevelopmentPath=${workspaceFolder}/packages/vscode-regex-explain",
+        "--extensionTestsPath=${workspaceFolder}/packages/vscode-regex-explain/out/test/integration/suite/index"
+      ],
+      "outFiles": ["${workspaceFolder}/packages/vscode-regex-explain/out/**/*.js"],
+      "preLaunchTask": "npm: compile"
+    }
+  ]
+}

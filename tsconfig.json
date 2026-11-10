@@ -1,0 +1,17 @@
+{
+  "files": [],
+  "references": [
+    {
+      "path": "./packages/regex-explain"
+    },
+    {
+      "path": "./packages/vscode-regex-explain"
+    },
+    {
+      "path": "./packages/vscode-regex-explain/src/webview"
+    },
+    {
+      "path": "./scripts"
+    }
+  ]
+}

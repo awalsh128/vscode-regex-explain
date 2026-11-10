@@ -1,0 +1,88 @@
+name: Bug report
+description: Report a wrong explanation, a missed or false warning, or an extension problem
+labels: [bug]
+assignees: [awalsh128]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Patterns are read with JavaScript regex syntax. Syntax from other engines, such as Python's
+        `(?P<name>...)`, is reported as an error; see
+        [Limitations](https://github.com/awalsh128/vscode-regex-explain/tree/main/packages/vscode-regex-explain#limitations).
+
+  - type: dropdown
+    id: package
+    attributes:
+      label: Package
+      options:
+        - VS Code extension
+        - npm library (regex-explain)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Wrong or unclear explanation
+        - Backtracking warning (missed, false, or wrong fix)
+        - Syntax error for a valid pattern
+        - Hover not shown or shown in the wrong place
+        - Command or explanation panel
+        - Settings
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: regex
+    attributes:
+      label: Regex
+      description: The full literal, including flags.
+      placeholder: /^(\d{3})-(\d{4})$/g
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened?
+      description: Paste the explanation or error you saw.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Extension or library version
+      placeholder: "1.0.0"
+    validations:
+      required: true
+
+  - type: input
+    id: editor
+    attributes:
+      label: Editor and version (extension only)
+      description: From Help → About (Code → About on macOS).
+      placeholder: VS Code 1.105.0
+
+  - type: input
+    id: language
+    attributes:
+      label: File language (hover problems only)
+      description: The language mode shown in the status bar, such as TypeScript or Python.
+
+  - type: textarea
+    id: settings
+    attributes:
+      label: Settings
+      description: Your `regexExplain.*` settings, if changed.
+      render: json

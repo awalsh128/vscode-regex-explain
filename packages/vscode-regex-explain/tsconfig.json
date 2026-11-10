@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "out",
+    "rootDir": "src",
+    "composite": true,
+    "tsBuildInfoFile": "out/.tsbuildinfo",
+    "paths": {
+      "regex-explain": ["../regex-explain/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["src/webview/main.ts"],
+  "references": [
+    {
+      "path": "../regex-explain"
+    }
+  ]
+}

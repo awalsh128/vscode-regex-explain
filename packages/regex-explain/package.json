@@ -1,0 +1,68 @@
+{
+  "name": "regex-explain",
+  "version": "0.0.0",
+  "description": "Explain ECMAScript regular expressions in plain English, find regexes in source code in many languages, and run them over text",
+  "keywords": [
+    "regex",
+    "regexp",
+    "regular expression",
+    "explain",
+    "redos"
+  ],
+  "author": {
+    "name": "awalsh128"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/awalsh128/vscode-regex-explain/tree/main/packages/regex-explain#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/awalsh128/vscode-regex-explain.git",
+    "directory": "packages/regex-explain"
+  },
+  "bugs": {
+    "url": "https://github.com/awalsh128/vscode-regex-explain/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "sideEffects": false,
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.mjs",
+  "types": "./dist/cjs/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/cjs/index.d.ts",
+      "import": "./dist/esm/index.mjs",
+      "require": "./dist/cjs/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.map"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "rimraf dist && tsc -p tsconfig.build.json && esbuild src/index.ts --bundle --format=esm --platform=neutral --target=es2022 --packages=external --outfile=dist/esm/index.mjs",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "@eslint-community/regexpp": "^4.12.2",
+    "regexp-ast-analysis": "^0.7.1",
+    "scslre": "^0.3.0"
+  },
+  "peerDependencies": {
+    "@vscode/tree-sitter-wasm": "^0.3.1"
+  },
+  "peerDependenciesMeta": {
+    "@vscode/tree-sitter-wasm": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@vscode/tree-sitter-wasm": "^0.3.1"
+  }
+}

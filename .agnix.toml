@@ -1,0 +1,9 @@
+target = "ClaudeCode"
+tools = ["claude-code"]
+max_files_to_validate = 10000
+locale = "en"
+
+[rules]
+disabled_rules = [
+  "VER-001"
+]
