@@ -102,6 +102,9 @@ configuration syntax; do not claim that runtime tests were run unless they were.
 
 ## Agent Layout
 
+AGENTS.md is the authoritative source of instructions for every tool. The tool-specific files below
+only point here and add nothing that conflicts, so no precedence between them needs resolving.
+
 - [CLAUDE.md](CLAUDE.md) imports these shared instructions for Claude Code.
 - [.github/copilot-instructions.md](.github/copilot-instructions.md) directs Copilot here.
 - [.claude/agents/docs-reviewer.md](.claude/agents/docs-reviewer.md) and
