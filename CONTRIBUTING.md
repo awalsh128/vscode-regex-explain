@@ -54,13 +54,20 @@ the same directory. After editing the SVG, render it again at 256×256, for exam
 Pull requests target `staging`; the Pull Request workflow rejects any other base branch, because
 `main` is only updated by [promotion](#branches). Keep pull requests focused, describe what changed
 and why, and link related issues. CI runs lint, format, consistency checks, all tests, and a
-dependency audit; the Pull Request workflow adds commitlint on every commit and a dependency review.
+dependency audit; the Pull Request workflow adds a dependency review and runs commitlint on the pull
+request title.
+
+Pull requests are squash-merged, and the squashed commit takes the pull request title as its subject
+and the description as its body. The title is the only message that reaches `staging`, so it must be
+a [Conventional Commit](https://www.conventionalcommits.org/); the messages of the commits inside
+the pull request are not checked in CI. Split changes that need separate release notes, such as a
+`feat` and an unrelated `fix`, into separate pull requests.
 
 ## Publishing
 
-Releases are versioned by [semantic-release](https://semantic-release.gitbook.io/) from commit
-messages, so commits must follow [Conventional Commits](https://www.conventionalcommits.org/). The
-library and the extension are versioned and released separately:
+Releases are versioned by [semantic-release](https://semantic-release.gitbook.io/) from the commit
+messages on `staging`, which are the squashed [pull request titles](#pull-requests). The library and
+the extension are versioned and released separately:
 
 | Package                   | Workflow                                                         | Tags                   | Configuration                                                                                        |
 | ------------------------- | ---------------------------------------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------- |

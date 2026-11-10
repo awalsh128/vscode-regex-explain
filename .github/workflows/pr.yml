@@ -24,24 +24,22 @@ jobs:
           fi
 
   commitlint:
-    name: Lint commit messages
+    name: Lint pull request title
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5, Node 24
-        with:
-          fetch-depth: 0
 
       - name: Setup
         uses: ./.github/actions/setup
 
-      # The commit-msg hook can be skipped locally, and semantic-release versions both packages from
-      # these messages, so check every PR commit too.
-      - name: Lint commit messages
+      # Pull requests are squash-merged with the title as the commit subject, and semantic-release
+      # versions both packages from it, so only the title has to be a Conventional Commit. The
+      # edited trigger reruns this check when the title changes.
+      - name: Lint pull request title
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: npx commitlint --from "$BASE_SHA" --to "$HEAD_SHA" --verbose
+          TITLE: ${{ github.event.pull_request.title }}
+        run: printf '%s\n' "$TITLE" | npx commitlint --verbose
 
   dependency-review:
     name: Dependency review
