@@ -8,5 +8,8 @@
     "semantic-release": "25.0.9",
     "semantic-release-monorepo": "8.0.2",
     "semantic-release-vsce": "6.1.8"
+  },
+  "overrides": {
+    "glob@^13": ">=14.0.3"
   }
 }
