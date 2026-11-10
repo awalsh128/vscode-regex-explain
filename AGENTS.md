@@ -82,14 +82,16 @@ structure, and compare new code with a neighbor in the same module before finish
 ## Commit Messages
 
 Write [Conventional Commits](https://www.conventionalcommits.org/): semantic-release derives the
-next version and release notes from them, and the `commit-msg` hook rejects other messages. Use
-`fix:` and `feat:` only for changes users of the library or extension see, since they trigger a
-release; use `docs:`, `ci:`, `chore:`, `refactor:`, `test:`, or `build:` otherwise. Mark breaking
-changes with `!` or a `BREAKING CHANGE:` footer; a breaking change to the library API is breaking
-even if the extension is unaffected. The library counts only commits that change
-`packages/regex-explain/`; the extension counts every commit. Extension releases use even minor
-versions and pre-releases odd ones (see [CONTRIBUTING.md](CONTRIBUTING.md#publishing)). Branch from
-and target `staging`; `main` only fast-forwards to it.
+next version and release notes from them, and the `commit-msg` hook rejects other messages. Pull
+requests are squash-merged with the title as the commit subject, so CI lints only the pull request
+title; give it the type and scope the whole change calls for. Use `fix:` and `feat:` only for
+changes users of the library or extension see, since they trigger a release; use `docs:`, `ci:`,
+`chore:`, `refactor:`, `test:`, or `build:` otherwise. Mark breaking changes with `!` or a
+`BREAKING CHANGE:` footer; a breaking change to the library API is breaking even if the extension is
+unaffected. The library counts only commits that change `packages/regex-explain/`; the extension
+counts every commit. Extension releases use even minor versions and pre-releases odd ones (see
+[CONTRIBUTING.md](CONTRIBUTING.md#publishing)). Branch from and target `staging`; `main` only
+fast-forwards to it.
 
 ## Validation
 
