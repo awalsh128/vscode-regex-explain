@@ -105,6 +105,7 @@
   },
   "overrides": {
     "glob": ">=14.0.3",
-    "minimatch": ">=11.0.2"
+    "minimatch": ">=11.0.2",
+    "deepmerge-ts": ">=8.0.0"
   }
 }
