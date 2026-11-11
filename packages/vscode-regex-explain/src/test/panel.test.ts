@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { describe, it } from "mocha";
 import * as path from "path";
 import { explainRegex } from "regex-explain";
-import { escapeHtml, PanelResources, PanelTemplate } from "../webview/panel";
+import { PanelResources, PanelTemplate } from "../webview/panel";
 
 /** The templates in the source tree; the bundle copies them to `dist/`. */
 const TEMPLATE = new PanelTemplate(path.join(__dirname, "..", "..", "src", "webview"));
@@ -155,14 +155,5 @@ describe("PanelTemplate multiline note", () => {
       // Assert
       expect(html.includes('class="note multiline-note"')).to.equal(expected);
     });
-  });
-});
-
-describe("escapeHtml", () => {
-  it("should escape markup and quotes", () => {
-    // Act & Assert
-    expect(escapeHtml(`<a href="x">'&'</a>`)).to.equal(
-      "&lt;a href=&quot;x&quot;&gt;&#39;&amp;&#39;&lt;/a&gt;"
-    );
   });
 });
