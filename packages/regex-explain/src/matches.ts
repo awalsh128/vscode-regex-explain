@@ -272,44 +272,57 @@ export function describeMatches(response: MatchResponse): MatchesModel {
     };
   });
   const problem = !!(response.error || response.timedOut);
-  const shown = response.truncated ? ` (showing the first ${matches.length} matches)` : "";
   const summary = response.error
     ? `The regex cannot run: ${response.error}`
     : response.timedOut
       ? "Matching timed out: the pattern backtracks too much on this text."
       : entries
-        ? `${describeEntryCount(entries)}${shown}.`
-        : `${describeCount(matches.length, "match", "matches")}${response.truncated ? ` (showing the first ${matches.length})` : ""}.`;
+        ? `${describeEntryCount(entries, matches.length, response.truncated)}.`
+        : `${describeMatchCount(matches.length, response.truncated)}.`;
   return entries ? { summary, problem, matches, entries } : { summary, problem, matches };
+}
+
+/**
+ * Words how many matches were found.
+ *
+ * @param count The matches kept.
+ * @param truncated Whether matching stopped at the limit, so there are more than `count`.
+ *
+ * @returns A phrase such as "No matches", "2 matches", or "More than 2 matches (showing the first
+ *   2)".
+ */
+function describeMatchCount(count: number, truncated: boolean): string {
+  return truncated
+    ? `More than ${count} ${count === 1 ? "match" : "matches"} (showing the first ${count})`
+    : `${count === 0 ? "No" : count} ${count === 1 ? "match" : "matches"}`;
 }
 
 /**
  * Words how many entries matched.
  *
  * @param entries The entries.
+ * @param matchCount The matches kept.
+ * @param truncated Whether matching stopped at the limit, so entries after the last match were left
+ *   out and may match too.
  *
- * @returns A phrase such as "1 of 3 entries matches" or "No entries".
+ * @returns A phrase such as "1 of 3 entries matches", "No entries", or "At least 2 entries match
+ *   (showing the first 2 matches)".
  */
-function describeEntryCount(entries: readonly EntryModel[]): string {
+function describeEntryCount(
+  entries: readonly EntryModel[],
+  matchCount: number,
+  truncated: boolean
+): string {
   if (entries.length === 0) {
     return "No entries";
   }
   const matched = entries.filter((entry) => entry.matched).length;
-  const noun = entries.length === 1 ? "entry" : "entries";
-  return `${matched} of ${entries.length} ${noun} ${matched === 1 ? "matches" : "match"}`;
-}
-
-/**
- * Words a count of things.
- *
- * @param count The count.
- * @param one The noun for one.
- * @param many The noun for several.
- *
- * @returns A phrase such as "No matches", "1 match", or "2 matches".
- */
-function describeCount(count: number, one: string, many: string): string {
-  return `${count === 0 ? "No" : count} ${count === 1 ? one : many}`;
+  const verb = matched === 1 ? "matches" : "match";
+  if (truncated) {
+    const shown = matchCount === 1 ? "match" : `${matchCount} matches`;
+    return `At least ${matched} ${matched === 1 ? "entry" : "entries"} ${verb} (showing the first ${shown})`;
+  }
+  return `${matched} of ${entries.length} ${entries.length === 1 ? "entry" : "entries"} ${verb}`;
 }
 
 /**
