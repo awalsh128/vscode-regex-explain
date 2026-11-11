@@ -255,3 +255,5 @@ same matches).
 See [AI_GUIDELINES.md](AI_GUIDELINES.md#tests). The integration launcher
 (`src/test/integration/runTest.ts`) clears `ELECTRON_RUN_AS_NODE`, which VS Code terminals can set
 and which would otherwise start Electron as Node, and uses a fresh temporary profile for each run.
+It tests the VS Code version in `VSCODE_TEST_VERSION`, or stable when unset; CI also runs it on
+Windows, macOS, and the oldest version `engines.vscode` accepts.

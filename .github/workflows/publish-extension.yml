@@ -47,7 +47,7 @@ jobs:
       tag: ${{ steps.tag.outputs.tag }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5, Node 24
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           fetch-depth: 0 # semantic-release reads every commit and tag since the last release
           persist-credentials: false
@@ -60,11 +60,13 @@ jobs:
           sha: ${{ github.sha }}
           token: ${{ github.token }}
 
-      # This job can mint a GitHub token, so dependencies' install scripts don't run.
+      # This job can mint a GitHub token, so dependencies' install scripts don't run, and it doesn't
+      # use the npm cache that other runs write.
       - name: Setup
         uses: ./.github/actions/setup
         with:
           ignore-scripts: true
+          cache: false
 
       # Builds out/scripts/release-version.js, which release.config.cjs loads, and the library's
       # dist/, which packaging the extension bundles.
@@ -116,21 +118,23 @@ jobs:
       id-token: write # For OIDC: Marketplace and Open VSX trusted publishing
     steps:
       - name: Checkout code
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5, Node 24
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           persist-credentials: false
 
-      # This job can mint registry tokens, so dependencies' install scripts don't run.
+      # This job can mint registry tokens, so dependencies' install scripts don't run, and it doesn't
+      # use the npm cache that other runs write.
       - name: Setup
         uses: ./.github/actions/setup
         with:
           ignore-scripts: true
+          cache: false
 
       - name: Publish the release's VSIX
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.release.outputs.tag }}
-          PRE_RELEASE_FLAG: ${{ inputs.pre-release && '--pre-release' || '' }}
+          PRE_RELEASE: ${{ inputs.pre-release }}
         run: |
           set -euo pipefail
           version="${TAG#v}"
@@ -138,4 +142,8 @@ jobs:
           gh release download "$TAG" --pattern "regex-explain-$version.vsix" --output "$vsix"
           # ops.ts reads the version from package.json to find the registries that lack it.
           npm pkg set version="$version" --prefix packages/vscode-regex-explain
-          npm run ops -- publish $PRE_RELEASE_FLAG --vsix "$vsix"
+          args=(publish --vsix "$vsix")
+          if [[ "$PRE_RELEASE" == "true" ]]; then
+            args+=(--pre-release)
+          fi
+          npm run ops -- "${args[@]}"

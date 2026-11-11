@@ -12,6 +12,8 @@ async function main(): Promise<void> {
   delete process.env.ELECTRON_RUN_AS_NODE;
   try {
     await runTests({
+      // CI sets this to test the oldest version engines.vscode accepts; the default is stable.
+      version: process.env.VSCODE_TEST_VERSION,
       extensionDevelopmentPath: EXTENSION_DIR,
       extensionTestsPath: path.resolve(__dirname, "./suite"),
       launchArgs: [

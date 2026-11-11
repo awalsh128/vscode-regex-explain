@@ -46,7 +46,7 @@
   },
   "scripts": {
     "prepare": "husky",
-    "clean": "rimraf out packages/*/out packages/*/dist packages/*/*.vsix",
+    "clean": "rimraf --glob out \"packages/*/out\" \"packages/*/dist\" \"packages/*/*.vsix\"",
     "build:lib": "npm run build -w packages/regex-explain",
     "compile": "npm run clean && npm run build:lib && tsc -b && npm run bundle --prefix packages/vscode-regex-explain",
     "watch": "tsc -b -w",
