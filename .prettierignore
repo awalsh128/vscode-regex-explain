@@ -3,6 +3,8 @@ out/
 dist/
 .vscode-test/
 *.vsix
+# agnix SARIF report written by CI.
+agnix-results.sarif
 package-lock.json
 **/LICENSE
 # Mustache templates: Prettier's HTML formatter would rewrap {{...}} tags.
