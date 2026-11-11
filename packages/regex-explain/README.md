@@ -205,17 +205,19 @@ where they can be stopped, such as a worker thread.
 ### `describeMatches(response)`
 
 Words a `MatchResponse` for display, returning a `MatchesModel`: a one-sentence `summary` such as "2
-matches." or why the regex could not run, whether it reports a `problem` (an `error` or `timedOut`),
-and the `matches` (`MatchModel`). Each has the `start` and `end` offsets, `lines` such as `L1` or
-`L1–2`, the `text` ("(empty)" for an empty match), and `groups` (`MatchGroupModel`: the `name`,
-which is `$1`, `$2`, and so on or the group's name, the `value` ("(no match)" if the group did not
-take part), and whether it `matched`).
+matches.", "More than 2 matches (showing the first 2)." when matching stopped at the limit, or why
+the regex could not run, whether it reports a `problem` (an `error` or `timedOut`), and the
+`matches` (`MatchModel`). Each has the `start` and `end` offsets, `lines` such as `L1` or `L1–2`,
+the `text` ("(empty)" for an empty match), and `groups` (`MatchGroupModel`: the `name`, which is
+`$1`, `$2`, and so on or the group's name, the `value` ("(no match)" if the group did not take
+part), and whether it `matched`).
 
-For a response with `entries`, the summary counts entries instead, such as "2 of 3 entries match."
-or "No entries.", and the model also has the `entries` (`EntryModel`: the `line` such as `L2`, its
-`start` and `end`, its `text` ("(empty)" for an empty line), whether it `matched`, and its
-`matches`). For the entries example above, they are `L1` "2024-05" (matched, 1 match), `L2` "soon"
-(not matched), and `L3` "2025-01" (matched, 1 match).
+For a response with `entries`, the summary counts entries instead, such as "2 of 3 entries match.",
+"At least 2 entries match (showing the first 2 matches)." at the limit, or "No entries.", and the
+model also has the `entries` (`EntryModel`: the `line` such as `L2`, its `start` and `end`, its
+`text` ("(empty)" for an empty line), whether it `matched`, and its `matches`). For the entries
+example above, they are `L1` "2024-05" (matched, 1 match), `L2` "soon" (not matched), and `L3`
+"2025-01" (matched, 1 match).
 
 ```ts
 const model = describeMatches(
