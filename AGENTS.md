@@ -100,6 +100,23 @@ Code changes require `npm run lint`, `npm run format:check`, `npm run check`, an
 [scripts](scripts) change. For documentation-only changes, validate examples, links, and
 configuration syntax; do not claim that runtime tests were run unless they were.
 
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues for `awalsh128/vscode-regex-explain`, managed with `gh`. See
+`docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default triage roles, except needs-triage maps to the existing `triage-pending` label. See
+`docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one root `GLOSSARY.md` and `docs/adr/`, shared by both packages. See
+`docs/agents/domain.md`.
+
 ## Agent Layout
 
 AGENTS.md is the authoritative source of instructions for every tool. The tool-specific files below
