@@ -9,3 +9,6 @@ package-lock.json
 **/LICENSE
 # Mustache templates: Prettier's HTML formatter would rewrap {{...}} tags.
 packages/vscode-regex-explain/src/webview/*.html
+# StrykerJS sandboxes and reports.
+.stryker-tmp/
+reports/

@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "packageManager": "npm",
+  "mutate": ["packages/regex-explain/src/*.ts"],
+  "ignorePatterns": [".vscode-test", "reports", "**/out", "**/dist", "*.vsix"],
+  "testRunner": "command",
+  "commandRunner": {
+    "command": "mocha --require tsx \"packages/regex-explain/src/test/*.test.ts\""
+  },
+  "checkers": ["typescript"],
+  "tsconfigFile": "packages/regex-explain/tsconfig.json",
+  "incremental": true,
+  "incrementalFile": "reports/stryker-incremental.json",
+  "reporters": ["clear-text", "progress", "html"],
+  "htmlReporter": {
+    "fileName": "reports/mutation/index.html"
+  }
+}

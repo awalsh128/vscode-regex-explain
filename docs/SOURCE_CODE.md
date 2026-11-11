@@ -253,6 +253,12 @@ types), `js-tokens` (JavaScript only), `@ast-grep/napi` (native binaries per pla
 ES module, needs manual `free()` calls, and types matchers as `any`; tree-sitter queries express the
 same matches).
 
+StrykerJS (`@stryker-mutator/core`, with `@stryker-mutator/typescript-checker` to skip mutants that
+do not compile) measures how well the library's unit tests catch changes, which line coverage
+cannot. `stryker.config.json` uses Stryker's command runner to run Mocha through `tsx`, because
+`@stryker-mutator/mocha-runner` imports `mocha/lib/cli/run-helpers`, which Mocha 12 renamed to
+`run-helpers.cjs`.
+
 ## Tests
 
 See [AI_GUIDELINES.md](AI_GUIDELINES.md#tests). The integration launcher
