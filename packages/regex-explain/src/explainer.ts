@@ -414,17 +414,17 @@ function explainSequence(alt: AST.Alternative, ctx: Context): ExplanationNode[] 
   if (alt.elements.length === 0) {
     return [make(alt, "Match the empty string")];
   }
-  // Consecutive characters become one run, so that "abc" is one step rather than three.
-  const steps = alt.elements.reduce<(AST.Element | AST.Character[])[]>((acc, el) => {
-    const last = acc[acc.length - 1];
-    if (el.type !== "Character") {
-      return [...acc, el];
-    }
-    return Array.isArray(last) ? [...acc.slice(0, -1), [...last, el]] : [...acc, [el]];
-  }, []);
-  return steps.map((step) =>
-    Array.isArray(step) ? explainCharacterRun(step, ctx) : explainElement(step, ctx)
+  // Consecutive characters become one run, so that "abc" is one step rather than three. Steps are
+  // sliced between their start offsets, because growing each run element by element is quadratic.
+  const { elements } = alt;
+  const starts = elements.flatMap((el, i) =>
+    el.type === "Character" && i > 0 && elements[i - 1].type === "Character" ? [] : [i]
   );
+  return starts.map((start, i) => {
+    const step = elements.slice(start, starts[i + 1]);
+    const run = step.filter((el): el is AST.Character => el.type === "Character");
+    return run.length > 0 ? explainCharacterRun(run, ctx) : explainElement(step[0], ctx);
+  });
 }
 
 /**

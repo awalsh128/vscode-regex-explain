@@ -13,6 +13,29 @@ describe("explainRegex", () => {
       expect(lines).to.deep.equal(["abc => Match the text `abc`"]);
     });
 
+    it("should merge a long run of characters within the test timeout", () => {
+      // Arrange
+      const pattern = "a".repeat(50_000);
+
+      // Act
+      const lines = outline(pattern);
+
+      // Assert
+      expect(lines).to.deep.equal([`${pattern} => Match the text \`${pattern}\``]);
+    });
+
+    it("should keep characters on each side of another element as separate runs", () => {
+      // Act
+      const lines = outline("ab.cd");
+
+      // Assert
+      expect(lines).to.deep.equal([
+        "ab => Match the text `ab`",
+        ". => Match any character except a line break",
+        "cd => Match the text `cd`",
+      ]);
+    });
+
     it("should name invisible characters", () => {
       // Act
       const lines = outline("\\t\\n");
