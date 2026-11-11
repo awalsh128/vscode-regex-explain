@@ -18,6 +18,7 @@ jobs:
       issues: write
       pull-requests: write
       checks: write
+      security-events: write # Upload agnix results to code scanning on push events
 
     steps:
       - name: Checkout code
