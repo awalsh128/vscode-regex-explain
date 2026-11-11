@@ -8,6 +8,11 @@ describe("code", () => {
     { text: "a`b", expected: "``a`b``" },
     { text: "`", expected: "`` ` ``" },
     { text: " a ", expected: "`  a  `" },
+    { text: " a\nb ", expected: "`  a\nb  `" },
+    { text: "  ", expected: "`  `" },
+    { text: "   ", expected: "`   `" },
+    { text: "\na ", expected: "` \na  `" },
+    { text: " \n ", expected: "` \n `" },
   ].forEach(({ text, expected }) => {
     it(`should wrap ${JSON.stringify(text)} as ${expected}`, () => {
       // Act & Assert
@@ -66,6 +71,7 @@ describe("splitCodeSpans", () => {
     { text: "``a`b``", expected: [{ text: "a`b", code: true }] },
     { text: "`` ` ``", expected: [{ text: "`", code: true }] },
     { text: "`  a  `", expected: [{ text: " a ", code: true }] },
+    { text: "`   `", expected: [{ text: "   ", code: true }] },
     { text: "`unclosed", expected: [{ text: "`unclosed", code: false }] },
   ].forEach(({ text, expected }) => {
     it(`should split ${JSON.stringify(text)}`, () => {
@@ -74,7 +80,15 @@ describe("splitCodeSpans", () => {
     });
   });
 
-  [{ text: "abc" }, { text: "a`b" }, { text: "`" }, { text: " a " }].forEach(({ text }) => {
+  [
+    { text: "abc" },
+    { text: "a`b" },
+    { text: "`" },
+    { text: " a " },
+    { text: " a\nb " },
+    { text: "  " },
+    { text: "   " },
+  ].forEach(({ text }) => {
     it(`should reverse code(${JSON.stringify(text)})`, () => {
       // Act & Assert
       expect(splitCodeSpans(code(text))).to.deep.equal([{ text, code: true }]);

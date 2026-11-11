@@ -26,9 +26,7 @@ const NAMED_CODE_POINTS: Readonly<Record<number, string>> = {
 export function code(text: string): string {
   const longest = Math.max(0, ...(text.match(/`+/g) ?? []).map((m) => m.length));
   const fence = "`".repeat(longest + 1);
-  // CommonMark strips one space from each side when both are present, so pad text that starts or
-  // ends with a backtick, or that is already padded.
-  const pad = text.startsWith("`") || text.endsWith("`") || /^ .* $/.test(text) ? " " : "";
+  const pad = text.startsWith("`") || text.endsWith("`") || isPadded(text) ? " " : "";
   return `${fence}${pad}${text}${pad}${fence}`;
 }
 
@@ -95,13 +93,25 @@ export function splitCodeSpans(text: string): TextPart[] {
   const plainStarts = [0, ...spans.map((span) => span.index + span[0].length)];
   const parts = spans.flatMap((span, i) => {
     const content = span[2];
-    const padded = content.length > 2 && content.startsWith(" ") && content.endsWith(" ");
     return [
       ...plainPart(text.slice(plainStarts[i], span.index)),
-      { text: padded ? content.slice(1, -1) : content, code: true },
+      { text: isPadded(content) ? content.slice(1, -1) : content, code: true },
     ];
   });
   return [...parts, ...plainPart(text.slice(plainStarts[spans.length]))];
+}
+
+/**
+ * Tests whether CommonMark strips one character from each side of a code span's content: after line
+ * endings become spaces, it starts and ends with a space and is not all spaces.
+ *
+ * @param content The code span's content.
+ *
+ * @returns Whether the content is padded.
+ */
+function isPadded(content: string): boolean {
+  const spaced = content.replace(/\r\n?|\n/g, " ");
+  return /^ [\s\S]* $/.test(spaced) && /[^ ]/.test(spaced);
 }
 
 /**
