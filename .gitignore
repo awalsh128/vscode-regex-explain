@@ -23,3 +23,7 @@ Thumbs.db
 
 # agnix SARIF report
 agnix-results.sarif
+
+# StrykerJS sandboxes and reports
+.stryker-tmp/
+reports/
