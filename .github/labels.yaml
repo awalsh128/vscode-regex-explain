@@ -37,6 +37,19 @@ labels:
     color: "#bfd4f2"
     description: The VS Code extension
 
+  # Agent triage (roles mapped in docs/agents/triage-labels.md)
+  - name: needs-info
+    color: "#d876e3"
+    description: Waiting on reporter for more information
+
+  - name: ready-for-agent
+    color: "#0e8a16"
+    description: Fully specified, ready for an AFK agent
+
+  - name: ready-for-human
+    color: "#1d76db"
+    description: Requires human implementation
+
   # Resolution
   - name: duplicate
     color: "#cfd3d7"
