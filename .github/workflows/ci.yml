@@ -6,25 +6,32 @@ on:
   push:
     branches: [main, staging]
   pull_request:
+  # Catches advisories published since the last push; only the audit job runs.
   schedule:
     - cron: "0 18 * * *"
   workflow_dispatch:
 
 permissions: {}
 
+# A new push to a pull request cancels its older run. Other runs each get their own group, so a
+# staging push is never cancelled or left pending: promotion and release candidates need its result.
+concurrency:
+  group:
+    ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
-  # Audits read only the lockfiles, so this job installs nothing: the write permissions it needs for
-  # issues, comments and code scanning never reach dependency code.
+  # Audits read only the lockfiles and workflow files, so this job installs nothing: its write
+  # permissions never reach dependency code.
   audit:
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     permissions:
       contents: read
-      issues: write
-      pull-requests: write
-      security-events: write
+      issues: write # Scheduled runs file issues for advisories
+      security-events: write # Upload agnix results to code scanning
     env:
-      # Pull requests from forks get a read-only token, so they can't comment, file issues, or upload
-      # code scanning results.
+      # Pull requests from forks get a read-only token, so they can't upload code scanning results.
       CAN_WRITE:
         ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name ==
         github.repository }}
@@ -34,44 +41,47 @@ jobs:
         with:
           persist-credentials: false
 
-      # Runtime dependencies ship to npm users and are bundled into the extension, so any advisory
-      # fails the build.
-      - name: Audit runtime dependencies
+      # Scheduled runs track advisories in issues; the npm audit steps below fail the build.
+      - name: Report runtime dependency advisories
+        if: ${{ github.event_name == 'schedule' }}
         uses: oke-py/npm-audit-action@f02a3cf15e7a1860efac849dd45126f9c2cafe4f # v4.0.1
         with:
           production_flag: true
           audit_level: low
+          fail_on_vulnerabilities: false
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          create_pr_comments: ${{ env.CAN_WRITE }}
-          create_issues: ${{ env.CAN_WRITE }}
+          create_pr_comments: false
+          create_issues: true
           issue_title: npm audit found vulnerabilities in runtime dependencies
           issue_labels: vulnerability,test
           dedupe_issues: true
 
-      # Development tools never ship, so moderate advisories are reported in an issue without
-      # failing the build.
+      # Development tools never ship, so moderate advisories are reported without failing the build.
       - name: Report development dependency advisories
+        if: ${{ github.event_name == 'schedule' }}
         uses: oke-py/npm-audit-action@f02a3cf15e7a1860efac849dd45126f9c2cafe4f # v4.0.1
         with:
           audit_level: moderate
           fail_on_vulnerabilities: false
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          create_pr_comments: ${{ env.CAN_WRITE }}
-          create_issues: ${{ env.CAN_WRITE }}
+          create_pr_comments: false
+          create_issues: true
           issue_labels: vulnerability,test
           dedupe_issues: true
 
+      # Runtime dependencies ship to npm users and are bundled into the extension, so any advisory
+      # fails the build.
+      - name: Audit runtime dependencies
+        run: npm audit --omit=dev --audit-level=low
+
       # Some tools run with publishing credentials, so high and critical advisories still fail.
       - name: Audit all dependencies for high severity
-        uses: oke-py/npm-audit-action@f02a3cf15e7a1860efac849dd45126f9c2cafe4f # v4.0.1
-        with:
-          audit_level: high
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          create_pr_comments: false
-          create_issues: false
+        if: ${{ !cancelled() }}
+        run: npm audit --audit-level=high
 
       - name: Validate agent configs
         id: agnix
+        if: ${{ !cancelled() }}
         uses: agent-sh/agnix@fefbece836bd558bbbc0847633f995d8138e8f08 # v0.61.0
         with:
           target: "claude-code"
@@ -84,10 +94,38 @@ jobs:
         with:
           sarif_file: ${{ steps.agnix.outputs.sarif-file }}
 
+      - name: Lint workflows
+        if: ${{ !cancelled() }}
+        uses: docker://rhysd/actionlint@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667 # 1.7.12
+        with:
+          args: -color
+
+      # Fails on findings rather than uploading them, so fork pull requests are checked too.
+      - name: Audit workflow security
+        if: ${{ !cancelled() }}
+        uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1
+        with:
+          version: "1.32.0"
+          advanced-security: false
+
+  # Reads the pull request's dependency changes from the API, so it needs no checkout.
+  dependency-review:
+    if: ${{ github.event_name == 'pull_request' }}
+    name: Dependency review
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Dependency Review
+        uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.9.0
+
   # Runs dependency install scripts and the code under test, so it gets a read-only token that
   # isn't left in .git/config.
   test:
+    if: ${{ github.event_name != 'schedule' }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     permissions:
       contents: read
 
@@ -128,10 +166,57 @@ jobs:
       - name: Pack the library
         run: npm pack --dry-run -w packages/regex-explain
 
+  # The test job covers Linux on stable VS Code. This adds the other platforms users run, and the
+  # oldest VS Code that engines.vscode accepts.
+  integration:
+    if: ${{ github.event_name != 'schedule' }}
+    name: Integration (${{ matrix.os }}, VS Code ${{ matrix.vscode }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            vscode: "1.100.0"
+          - os: windows-2025
+            vscode: stable
+          - os: macos-15
+            vscode: stable
+
+    steps:
+      # Windows checkouts convert line endings to CRLF by default, which test fixtures don't expect.
+      - name: Keep LF line endings
+        run: git config --global core.autocrlf false
+
+      - name: Checkout code
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Compile
+        run: npm run compile
+
+      - name: Integration tests
+        shell: bash
+        env:
+          VSCODE_TEST_VERSION: ${{ matrix.vscode }}
+        run: |
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            xvfb-run --auto-servernum npm run test:integration
+          else
+            npm run test:integration
+          fi
+
   # Library release candidates are only cut from staging commits that pass CI.
   release-candidate:
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/staging' }}
-    needs: [audit, test]
+    needs: [audit, test, integration]
     permissions:
       actions: read
       contents: write

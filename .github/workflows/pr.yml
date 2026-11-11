@@ -1,5 +1,7 @@
 name: Pull Request
 
+# Checks the pull request's title and base branch. The edited trigger reruns them when either
+# changes; code checks, including dependency review, are in ci.yml so that edits don't rerun them.
 on:
   pull_request:
     types: [opened, synchronize, reopened, edited]
@@ -7,10 +9,15 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check-branch:
     name: Check branch
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
       # main is only updated by promote.yml, which fast-forwards it to staging; a merge into main
       # would add a commit that staging doesn't have.
@@ -26,31 +33,22 @@ jobs:
   commitlint:
     name: Lint pull request title
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - name: Checkout code
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           persist-credentials: false
 
+      # commitlint needs no install scripts, and skipping them keeps title edits quick.
       - name: Setup
         uses: ./.github/actions/setup
+        with:
+          ignore-scripts: true
 
       # Pull requests are squash-merged with the title as the commit subject, and semantic-release
-      # versions both packages from it, so only the title has to be a Conventional Commit. The
-      # edited trigger reruns this check when the title changes.
+      # versions both packages from it, so only the title has to be a Conventional Commit.
       - name: Lint pull request title
         env:
           TITLE: ${{ github.event.pull_request.title }}
         run: printf '%s\n' "$TITLE" | npx commitlint --verbose
-
-  dependency-review:
-    name: Dependency review
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
-        with:
-          persist-credentials: false
-
-      - name: Dependency Review
-        uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.9.0

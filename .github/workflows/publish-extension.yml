@@ -60,11 +60,13 @@ jobs:
           sha: ${{ github.sha }}
           token: ${{ github.token }}
 
-      # This job can mint a GitHub token, so dependencies' install scripts don't run.
+      # This job can mint a GitHub token, so dependencies' install scripts don't run, and it doesn't
+      # use the npm cache that other runs write.
       - name: Setup
         uses: ./.github/actions/setup
         with:
           ignore-scripts: true
+          cache: false
 
       # Builds out/scripts/release-version.js, which release.config.cjs loads, and the library's
       # dist/, which packaging the extension bundles.
@@ -120,11 +122,13 @@ jobs:
         with:
           persist-credentials: false
 
-      # This job can mint registry tokens, so dependencies' install scripts don't run.
+      # This job can mint registry tokens, so dependencies' install scripts don't run, and it doesn't
+      # use the npm cache that other runs write.
       - name: Setup
         uses: ./.github/actions/setup
         with:
           ignore-scripts: true
+          cache: false
 
       - name: Publish the release's VSIX
         env:

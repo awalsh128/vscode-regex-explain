@@ -1,7 +1,8 @@
 # Pull requests target staging, since main only fast-forwards to it (see CONTRIBUTING.md#branches).
 # Titles use the build type, which doesn't trigger a release; retitle a pull request as fix: when a
 # runtime dependency update should ship. Grouping keeps one pull request, and a title within
-# commitlint's 100-character limit, per ecosystem and update type.
+# commitlint's 100-character limit, per ecosystem and update type. The cooldown skips releases
+# younger than a week, giving a compromised release time to be caught and pulled.
 version: 2
 
 updates:
@@ -13,6 +14,8 @@ updates:
     target-branch: staging
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: build
       include: scope
@@ -28,6 +31,8 @@ updates:
     target-branch: staging
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: build
       include: scope

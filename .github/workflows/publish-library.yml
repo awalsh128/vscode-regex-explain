@@ -54,12 +54,14 @@ jobs:
           sha: ${{ github.sha }}
           token: ${{ github.token }}
 
-      # This job can mint npm publish and GitHub tokens, so dependencies' install scripts don't run.
+      # This job can mint npm publish and GitHub tokens, so dependencies' install scripts don't run,
+      # and it doesn't use the npm cache that other runs write.
       # dist/ is built by the library's prepack script when npm publishes.
       - name: Setup
         uses: ./.github/actions/setup
         with:
           ignore-scripts: true
+          cache: false
 
       # semantic-release-monorepo keeps only the commits that change packages/regex-explain.
       - name: Release

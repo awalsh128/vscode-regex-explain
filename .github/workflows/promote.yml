@@ -22,21 +22,12 @@ jobs:
       actions: write # Read CI runs and start the release workflow
       id-token: write # For OIDC: the Octo STS token that updates main
     steps:
-      # main's ruleset only lets the Octo STS app update it, so main is pushed with its token,
-      # issued under .github/chainguard/promote.sts.yaml to this workflow on staging only.
-      - name: Create main token
-        id: octo-sts
-        uses: octo-sts/action@f603d3be9d8dd9871a265776e625a27b00effe05 # v1.1.1
-        with:
-          scope: ${{ github.repository }}
-          identity: promote
-
       - name: Checkout repository
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           ref: staging
           fetch-depth: 0
-          token: ${{ steps.octo-sts.outputs.token }}
+          persist-credentials: false
 
       - name: Resolve staging commit
         id: staging
@@ -51,20 +42,36 @@ jobs:
           sha: ${{ steps.staging.outputs.sha }}
           token: ${{ github.token }}
 
-      - name: Fast-forward main to staging
+      - name: Require a fast-forward
         env:
           STAGING_SHA: ${{ steps.staging.outputs.sha }}
         shell: bash
         run: |
-          set -euo pipefail
           if ! git merge-base --is-ancestor origin/main "$STAGING_SHA"; then
             echo "::error::main has commits that are not on staging, so it can't be fast-forwarded."
             echo "Get those commits onto staging through a pull request, then promote again."
             exit 1
           fi
-          # Not a force push, so the remote rejects anything but a fast-forward. Uses the
-          # Octo STS token persisted by checkout.
-          git push origin "$STAGING_SHA:refs/heads/main"
+
+      # main's ruleset only lets the Octo STS app update it, so main is pushed with its token,
+      # issued under .github/chainguard/promote.sts.yaml to this workflow on staging only. It is
+      # minted only once the checks pass, and used only by the push.
+      - name: Create main token
+        id: octo-sts
+        uses: octo-sts/action@f603d3be9d8dd9871a265776e625a27b00effe05 # v1.1.1
+        with:
+          scope: ${{ github.repository }}
+          identity: promote
+
+      # Not a force push, so the remote rejects anything but a fast-forward.
+      - name: Fast-forward main to staging
+        env:
+          STAGING_SHA: ${{ steps.staging.outputs.sha }}
+          TOKEN: ${{ steps.octo-sts.outputs.token }}
+        shell: bash
+        run: |
+          git push "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            "$STAGING_SHA:refs/heads/main"
 
       # Starting the release on main makes semantic-release cut an official release, not a candidate.
       # The extension is published separately, by starting publish-extension.yml on main.

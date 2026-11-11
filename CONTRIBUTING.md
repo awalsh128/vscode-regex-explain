@@ -43,7 +43,8 @@ All changes follow [docs/AI_GUIDELINES.md](docs/AI_GUIDELINES.md) and the docume
 
 `npm test` downloads VS Code into `.vscode-test/` on its first run and opens a test window. On a
 machine without a display, run it under `xvfb-run -a npm test`, as CI does. Run only some
-integration tests with `MOCHA_GREP="RegexHoverProvider" npm run test:integration`.
+integration tests with `MOCHA_GREP="RegexHoverProvider" npm run test:integration`, and test another
+VS Code version with `VSCODE_TEST_VERSION=1.100.0 npm run test:integration`.
 
 The extension icon is `packages/vscode-regex-explain/images/logo.png`, rendered from `logo.svg` in
 the same directory. After editing the SVG, render it again at 256×256, for example with
