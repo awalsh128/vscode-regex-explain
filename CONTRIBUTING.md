@@ -144,6 +144,11 @@ semantic-release and its plugins are locked in
 apart from the root workspace. To update them, edit that directory's `package.json` and run
 `npm install --package-lock-only --ignore-scripts` there.
 
+[Dependabot](.github/dependabot.yml) opens weekly pull requests against `staging` for the root
+workspace, the release tools, and the SHA-pinned actions in the workflows and composite actions.
+Their titles use the `build` type, so retitle one as `fix:` when a runtime dependency update should
+trigger a release.
+
 ### Publishing the Library
 
 Every library release is gated by CI on the exact commit being released:

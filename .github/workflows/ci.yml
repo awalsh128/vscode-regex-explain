@@ -10,33 +10,40 @@ on:
     - cron: "0 18 * * *"
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
-  test:
+  # Audits read only the lockfiles, so this job installs nothing: the write permissions it needs for
+  # issues, comments and code scanning never reach dependency code.
+  audit:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
       issues: write
       pull-requests: write
-      checks: write
-      security-events: write # Upload agnix results to code scanning on push events
-
+      security-events: write
+    env:
+      # Pull requests from forks get a read-only token, so they can't comment, file issues, or upload
+      # code scanning results.
+      CAN_WRITE:
+        ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name ==
+        github.repository }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5, Node 24
-
-      - name: Setup
-        uses: ./.github/actions/setup
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
 
       # Runtime dependencies ship to npm users and are bundled into the extension, so any advisory
       # fails the build.
       - name: Audit runtime dependencies
-        uses: oke-py/npm-audit-action@f02a3cf15e7a1860efac849dd45126f9c2cafe4f
+        uses: oke-py/npm-audit-action@f02a3cf15e7a1860efac849dd45126f9c2cafe4f # v4.0.1
         with:
           production_flag: true
           audit_level: low
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          create_pr_comments: true
-          create_issues: true
+          create_pr_comments: ${{ env.CAN_WRITE }}
+          create_issues: ${{ env.CAN_WRITE }}
           issue_title: npm audit found vulnerabilities in runtime dependencies
           issue_labels: vulnerability,test
           dedupe_issues: true
@@ -44,19 +51,19 @@ jobs:
       # Development tools never ship, so moderate advisories are reported in an issue without
       # failing the build.
       - name: Report development dependency advisories
-        uses: oke-py/npm-audit-action@f02a3cf15e7a1860efac849dd45126f9c2cafe4f
+        uses: oke-py/npm-audit-action@f02a3cf15e7a1860efac849dd45126f9c2cafe4f # v4.0.1
         with:
           audit_level: moderate
           fail_on_vulnerabilities: false
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          create_pr_comments: true
-          create_issues: true
+          create_pr_comments: ${{ env.CAN_WRITE }}
+          create_issues: ${{ env.CAN_WRITE }}
           issue_labels: vulnerability,test
           dedupe_issues: true
 
       # Some tools run with publishing credentials, so high and critical advisories still fail.
       - name: Audit all dependencies for high severity
-        uses: oke-py/npm-audit-action@f02a3cf15e7a1860efac849dd45126f9c2cafe4f
+        uses: oke-py/npm-audit-action@f02a3cf15e7a1860efac849dd45126f9c2cafe4f # v4.0.1
         with:
           audit_level: high
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -70,9 +77,28 @@ jobs:
           target: "claude-code"
           format: "sarif"
 
-      - uses: github/codeql-action/upload-sarif@v4
+      # Uploads even when agnix fails, since that is when the findings matter.
+      - name: Upload agent config results
+        if: ${{ always() && env.CAN_WRITE == 'true' && steps.agnix.outputs.sarif-file != '' }}
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
           sarif_file: ${{ steps.agnix.outputs.sarif-file }}
+
+  # Runs dependency install scripts and the code under test, so it gets a read-only token that
+  # isn't left in .git/config.
+  test:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+
+      - name: Setup
+        uses: ./.github/actions/setup
 
       - name: Lint
         run: npm run lint
@@ -105,7 +131,7 @@ jobs:
   # Library release candidates are only cut from staging commits that pass CI.
   release-candidate:
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/staging' }}
-    needs: test
+    needs: [audit, test]
     permissions:
       actions: read
       contents: write

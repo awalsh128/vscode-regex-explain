@@ -42,7 +42,7 @@ jobs:
       pull-requests: write # For semantic-release comments
     steps:
       - name: Checkout repository
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5, Node 24
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           fetch-depth: 0 # semantic-release reads every commit and tag since the last release
           persist-credentials: false
