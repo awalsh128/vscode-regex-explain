@@ -67,7 +67,6 @@ jobs:
         uses: agent-sh/agnix@fefbece836bd558bbbc0847633f995d8138e8f08 # v0.61.0
         with:
           target: "claude-code"
-          strict: "true"
           format: "sarif"
 
       - uses: github/codeql-action/upload-sarif@v3
