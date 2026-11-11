@@ -26,6 +26,11 @@ describe("decodeEscape", () => {
       expect(decodeEscape(escape)).to.equal(expected);
     });
   });
+
+  it("should prefer the language's own meaning of an escape", () => {
+    // Act & Assert
+    expect(decodeEscape("\\s", { s: " " })).to.equal(" ");
+  });
 });
 
 describe("splitDelimitedPattern", () => {
