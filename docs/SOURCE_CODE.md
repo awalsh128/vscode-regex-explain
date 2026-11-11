@@ -144,16 +144,18 @@ skipped. For `scriptBlocks` languages (Vue, Svelte) only `<script>` blocks are p
 
 ### `compiler.ts`
 
-`LANGUAGES` maps a VS Code language ID to a grammar, a tree-sitter query, and flag translations. The
-module comment defines the capture names. To add a language, add an entry and a case to
-`compiler.test.ts`. The extension's `bundle.mjs` copies the grammar, and `SUPPORTED_LANGUAGE_IDS`
-sets the `hover.languages` default, which must also be added to the manifest's default and `enum`,
-and to the extension README's language table and settings default.
+`LANGUAGES` maps a VS Code language ID to a grammar, a tree-sitter query, flag translations, and
+string escapes that differ from JavaScript's, such as Java's and Ruby's `\s` for a space. The module
+comment defines the capture names. To add a language, add an entry and a case to `compiler.test.ts`.
+The extension's `bundle.mjs` copies the grammar, and `SUPPORTED_LANGUAGE_IDS` sets the
+`hover.languages` default, which must also be added to the manifest's default and `enum`, and to the
+extension README's language table and settings default.
 
 ### `strings.ts`
 
-`decodeEscape` decodes one escape the grammar marked; `splitDelimitedPattern` reads PHP's
-`/pattern/flags`; `translateFlags` maps flags to JavaScript's. These are internal.
+`decodeEscape` decodes one escape the grammar marked, preferring the language's own `escapes`;
+`splitDelimitedPattern` reads PHP's `/pattern/flags`; `translateFlags` maps flags to JavaScript's.
+These are internal.
 
 ### `matches.ts`
 

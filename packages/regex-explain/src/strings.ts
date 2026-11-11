@@ -5,7 +5,7 @@
  */
 import type { RegexSource } from "./explainer";
 
-/** Single-character escapes that mean the same in every supported language that has them. */
+/** Single-character escapes that mean the same in JavaScript and other languages that have them. */
 const SIMPLE_ESCAPES: Readonly<Record<string, string>> = {
   b: "\b",
   f: "\f",
@@ -31,13 +31,22 @@ const CLOSING_BRACKETS: Readonly<Record<string, string>> = {
  * escapes, so they never reach this function.
  *
  * @param escape The escape's source text, starting with a backslash.
+ * @param escapes Single-character escapes whose meaning in the source language differs from
+ *   JavaScript's, such as Java's `\s` for a space.
  *
  * @returns The decoded text, or undefined for escapes that cannot be decoded without knowing the
  *   language, such as Python's `\N{name}`, or `\a` and `\e`, which are control characters in some
  *   languages and plain letters in JavaScript.
  */
-export function decodeEscape(escape: string): string | undefined {
+export function decodeEscape(
+  escape: string,
+  escapes: Readonly<Record<string, string>> = {}
+): string | undefined {
   const body = escape.slice(1);
+  const own = escapes[body];
+  if (own !== undefined) {
+    return own;
+  }
   const hex = /^(?:x([\da-f]{1,2})|[xu]\{([\da-f]+)\}|u([\da-f]{4})|U([\da-f]{8}))$/i.exec(body);
   if (hex) {
     const codePoint = parseInt(hex.slice(1).find((group) => group !== undefined) ?? "", 16);
