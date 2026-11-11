@@ -190,7 +190,7 @@ share.
 - `webview/panel.ts`: `PanelTemplate` reads `panel.html` and the `parts.html` partial once, then
   renders `ExplanationRenderer.model()` with Mustache, adding each row's indent, the error's caret
   line, and highlighted HTML for the literal, each row's `raw`, and a warning's fix. Every other
-  value is escaped with `escapeHtml`; the template inserts the highlighted HTML unescaped, because
+  value is escaped with `escape-html`; the template inserts the highlighted HTML unescaped, because
   Shiki has already escaped its text. The page also holds the `match-item` and `match-group`
   `<template>` elements that the panel script clones. It does not import `vscode`, so it is tested
   in Node, reading the templates from `src/webview/`; the extension reads the copies in `dist/`.
@@ -232,6 +232,7 @@ share.
 | `scslre`                    | Library                            | Detects polynomial and exponential backtracking on the regexpp AST and derives safe rewrites                                                                                                    |
 | `shiki`                     | Extension                          | TextMate-grammar syntax highlighting with VS Code's own themes; the panel loads only the `regexp` grammar (12 KB) and the Light+ and Dark+ themes, adding about 200 KB to the bundle            |
 | `mustache`                  | Extension                          | Small, logic-less templates with HTML escaping, loops, conditions, and partials, so the panel markup lives in template files rather than TypeScript strings                                     |
+| `escape-html`               | Extension                          | Escapes Mustache values for HTML content and quoted attributes; the package Express uses, and it leaves `/` and `=` alone, unlike Mustache's built-in escaper                                   |
 | `@vscode-elements/elements` | Extension                          | Lit web components styled with VS Code's theme variables; the maintained successor to the deprecated `@vscode/webview-ui-toolkit`. The panel imports only the table, textarea, and split layout |
 | `@vscode/tree-sitter-wasm`  | Library (optional peer), extension | Typed tree-sitter runtime and prebuilt grammars from the VS Code team, ABI-matched; WASM, so one VSIX works on every platform                                                                   |
 

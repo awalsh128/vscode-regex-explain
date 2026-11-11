@@ -5,6 +5,7 @@
  * highlighted by `highlight.ts`. It does not import `vscode`, so that it can be tested in Node; the
  * panel passes in the webview URIs.
  */
+import escapeHtml from "escape-html";
 import * as fs from "fs";
 import Mustache from "mustache";
 import * as path from "path";
@@ -100,20 +101,4 @@ export class PanelTemplate {
  */
 function literalHtml(source: RegexSource): string {
   return `/${highlight(source.pattern)}/${escapeHtml(source.flags)}`;
-}
-
-/**
- * Escapes text for use in HTML content and quoted attributes.
- *
- * @param text The text.
- *
- * @returns The escaped text.
- */
-export function escapeHtml(text: string): string {
-  // TODO: Use escape-html instead
-  return text.replace(
-    /[&<>"']/g,
-    (char) =>
-      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char] ?? char
-  );
 }
