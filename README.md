@@ -9,7 +9,7 @@
   <a href="https://marketplace.visualstudio.com/items?itemName=awalsh128.regex-explain"><img src="https://vsmarketplacebadges.dev/downloads/awalsh128.regex-explain.svg?label=Marketplace%20downloads&color=blueviolet" alt="Marketplace downloads"></a>
   <a href="https://open-vsx.org/extension/awalsh128/regex-explain"><img src="https://img.shields.io/open-vsx/dt/awalsh128/regex-explain?label=Open%20VSX%20downloads&color=blueviolet" alt="Open VSX downloads"></a>
   <a href="https://github.com/awalsh128/vscode-regex-explain/actions/workflows/ci.yml"><img src="https://github.com/awalsh128/vscode-regex-explain/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/awalsh128/vscode-regex-explain/blob/main/LICENSE.md"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License"></a>
+  <a href="https://github.com/awalsh128/vscode-regex-explain/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License"></a>
 </p>
 
 Explains regular expressions in plain English and warns about catastrophic backtracking. This
