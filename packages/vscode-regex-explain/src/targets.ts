@@ -17,11 +17,11 @@ export interface RegexTarget {
   readonly range: vscode.Range;
 }
 
-/** Regexes found in a text document version (i.e. snapshot). */
-export interface TextDocumentRegexes {
-  /** Version of the document. */
+/** The regexes found in one version of a document. */
+interface TextDocumentRegexes {
+  /** The document version. */
   readonly version: number;
-  /** Located regexes found in the document */
+  /** The regexes, in order. */
   readonly regexes: Promise<LocatedRegex[]>;
 }
 
@@ -82,7 +82,8 @@ export class RegexLocator {
 
   /**
    * Returns the regex the user is pointing at in an editor: the selection containing the position,
-   * else the regex under it.
+   * else the regex under it or ending at it. A cursor right after a regex, as when typing its
+   * flags, still points at that regex.
    *
    * @param editor The editor.
    * @param position The position; defaults to the cursor.
@@ -93,7 +94,12 @@ export class RegexLocator {
     editor: vscode.TextEditor,
     position: vscode.Position = editor.selection.active
   ): Promise<RegexTarget | undefined> {
-    return this.selectionAt(editor, position) ?? (await this.regexAt(editor.document, position));
+    const { document } = editor;
+    return (
+      this.selectionAt(editor, position) ??
+      (await this.regexAt(document, position)) ??
+      (position.character > 0 ? await this.regexAt(document, position.translate(0, -1)) : undefined)
+    );
   }
 
   /**

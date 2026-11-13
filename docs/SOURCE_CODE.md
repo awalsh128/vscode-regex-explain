@@ -226,7 +226,9 @@ share.
   (`dist/matchWorker.js`); it answers requests only in threads that `RegexMatcher` started, which it
   marks through `workerData`.
 - `targets.ts`: `RegexLocator` returns the selection containing a position (any language) or the
-  regex at it (configured languages). Regexes are cached per document version as a promise.
+  regex at it (configured languages). For the cursor (`targetAt`), a regex that ends at the position
+  also counts, so typing a literal's flags keeps it in the panel; hovers (`regexAt`) use the hovered
+  character only. Regexes are cached per document version as a promise.
 - `configuration.ts`: `getConfig()` and `DEFAULT_CONFIGURATION`. An integration test checks the
   defaults against the manifest.
 
