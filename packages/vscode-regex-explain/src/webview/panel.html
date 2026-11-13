@@ -91,13 +91,19 @@
       <p class="engine">Matched with JavaScript <code>RegExp</code>.</p>
     </section>
   </main>
-  <!-- Cloned by the panel script for each result row, match, and capture group. -->
+  <!-- Cloned by the panel script for each result row, match, and capture group. The row keeps its
+    table around it, which the script leaves behind, because happy-dom drops a bare <tr> from a
+    template. -->
   <template id="result-row">
-    <tr>
-      <td class="line-col"></td>
-      <td class="entry-col"><code class="entry"></code></td>
-      <td class="match-col"></td>
-    </tr>
+    <table>
+      <tbody>
+        <tr>
+          <td class="line-col"></td>
+          <td class="entry-col"><code class="entry"></code></td>
+          <td class="match-col"></td>
+        </tr>
+      </tbody>
+    </table>
   </template>
   <template id="match-item">
     <div class="match-item">
