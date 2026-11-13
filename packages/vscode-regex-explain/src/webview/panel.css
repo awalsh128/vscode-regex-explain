@@ -79,6 +79,214 @@ code {
   display: block;
 }
 
+/* The state machine. Each kind of step has a color from the theme's chart palette, which VS Code
+   adapts to light, dark, and high-contrast themes; the labels and legend carry the same meaning
+   without color. */
+body {
+  --machine-literal: var(--vscode-charts-blue, #3794ff);
+  --machine-set: var(--vscode-charts-green, #89d185);
+  --machine-assertion: var(--vscode-charts-orange, #d18616);
+  --machine-backreference: var(--vscode-charts-red, #f14c4c);
+  --machine-loop: var(--vscode-charts-yellow, #cca700);
+  --machine-group: var(--vscode-charts-purple, #b180d7);
+  --machine-empty: var(--vscode-descriptionForeground, #999999);
+}
+
+.machine {
+  overflow-x: auto;
+}
+
+.machine-svg {
+  display: block;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 12px;
+}
+
+.machine-svg text {
+  fill: var(--machine-color);
+}
+
+.machine .literal {
+  --machine-color: var(--machine-literal);
+}
+
+.machine .set {
+  --machine-color: var(--machine-set);
+}
+
+.machine .assertion {
+  --machine-color: var(--machine-assertion);
+}
+
+.machine .backreference {
+  --machine-color: var(--machine-backreference);
+}
+
+.machine .empty {
+  --machine-color: var(--machine-empty);
+}
+
+.machine .loop {
+  --machine-color: var(--machine-loop);
+}
+
+.machine .box {
+  --machine-color: var(--machine-group);
+}
+
+.arrow path {
+  fill: var(--machine-color);
+}
+
+.line {
+  fill: none;
+  stroke: var(--vscode-foreground);
+  stroke-opacity: 0.5;
+  stroke-width: 1.5;
+}
+
+.line.dashed {
+  stroke: var(--machine-empty);
+  stroke-dasharray: 4 3;
+  stroke-opacity: 1;
+}
+
+.transition text {
+  text-anchor: middle;
+}
+
+.loop text {
+  font-size: 11px;
+  text-anchor: middle;
+}
+
+.transition .stroke,
+.loop .stroke {
+  fill: none;
+  stroke: var(--machine-color);
+  stroke-width: 2;
+}
+
+.loop .stroke {
+  stroke-width: 1.5;
+}
+
+/* A wide invisible stroke makes thin arrows easy to hover. */
+.machine .hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 14;
+}
+
+.transition:hover .stroke,
+.transition:focus-visible .stroke,
+.loop:hover .stroke,
+.loop:focus-visible .stroke {
+  stroke-width: 3.5;
+}
+
+.machine-svg g:focus {
+  outline: none;
+}
+
+.machine-svg g:focus-visible text {
+  text-decoration: underline;
+}
+
+.box rect {
+  fill: color-mix(in srgb, var(--machine-group) 8%, transparent);
+  stroke: var(--machine-group);
+  stroke-dasharray: 3 2;
+}
+
+.box:hover rect,
+.box:focus-visible rect {
+  stroke-dasharray: none;
+}
+
+.box text {
+  font-size: 11px;
+}
+
+.state {
+  fill: var(--vscode-editor-background);
+  stroke: var(--vscode-foreground);
+  stroke-width: 1.5;
+}
+
+.state.start,
+.state-inner {
+  fill: var(--vscode-foreground);
+}
+
+.legend {
+  color: var(--vscode-descriptionForeground);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.9em;
+  gap: 2px 14px;
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+}
+
+.legend li::before {
+  background: var(--swatch);
+  border-radius: 2px;
+  content: "";
+  display: inline-block;
+  height: 3px;
+  margin-right: 5px;
+  vertical-align: middle;
+  width: 14px;
+}
+
+.legend .literal {
+  --swatch: var(--machine-literal);
+}
+
+.legend .set {
+  --swatch: var(--machine-set);
+}
+
+.legend .assertion {
+  --swatch: var(--machine-assertion);
+}
+
+.legend .backreference {
+  --swatch: var(--machine-backreference);
+}
+
+.legend .loop {
+  --swatch: var(--machine-loop);
+}
+
+.legend .group {
+  --swatch: var(--machine-group);
+}
+
+.tip {
+  background: var(--vscode-editorHoverWidget-background, #252526);
+  border: 1px solid var(--vscode-editorHoverWidget-border, #454545);
+  border-radius: 3px;
+  box-shadow: 0 2px 8px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.36));
+  color: var(--vscode-editorHoverWidget-foreground, var(--vscode-foreground));
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 4px 8px;
+  pointer-events: none;
+  position: absolute;
+  z-index: 10;
+}
+
+.steps-details {
+  margin: 8px 0;
+}
+
+.steps-details summary {
+  cursor: pointer;
+  margin-bottom: 4px;
+}
+
 /* Cells default to one truncated line; explanations should wrap instead. */
 .steps vscode-table-cell {
   height: auto;

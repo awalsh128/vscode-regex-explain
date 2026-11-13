@@ -8,7 +8,7 @@ import { describeMatches, explainRegex, regex101Url, RegexSource } from "regex-e
 import * as vscode from "vscode";
 import { getConfig } from "../configuration";
 import { RegexMatcher } from "../matcher";
-import { PanelTemplate } from "./panel";
+import { PANEL_TITLE, PanelTemplate } from "./panel";
 import { isMatchMessage, MatchesMessage } from "./protocol";
 
 /** View type of the explanation panel. */
@@ -162,7 +162,7 @@ export class ExplanationPanel implements vscode.Disposable {
   private create(): vscode.WebviewPanel {
     const panel = vscode.window.createWebviewPanel(
       VIEW_TYPE,
-      "Regex Explanation",
+      PANEL_TITLE,
       { viewColumn: vscode.ViewColumn.Beside, preserveFocus: true },
       {
         enableScripts: true,

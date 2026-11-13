@@ -5,22 +5,25 @@
 ```
 ┌──────────────────────────── VS Code extension (packages/vscode-regex-explain) ──┐
 │  extension.ts ── registers ──┬─> hover.ts    RegexHoverProvider                 │
-│                              ├─> preview.ts  ExplainCommandHandler              │
+│                              ├─> explain.ts  ExplainCommandHandler              │
 │                              └─> follow.ts   PanelFollower: regex at the cursor │
 │  targets.ts      RegexLocator: selection or regex at a position (cached)        │
 │  webview/host.ts  ExplanationPanel: opens the panel, answers match requests     │
 │  webview/panel.ts PanelTemplate: ExplanationModel ─> panel.html (Mustache)      │
 │  webview/highlight.ts  highlight(): Shiki regexp tokens in Light+ and Dark+     │
-│  webview/main.ts  panel script (browser): gutter, results, messages             │
+│  webview/diagram.ts  layoutMachine(): state machine ─> SVG coordinates          │
+│  webview/main.ts  panel script (browser): wires the page, saves its state       │
+│  webview/results.ts  results table, gutter numbers, match requests (browser)    │
 │  webview/protocol.ts  messages between the webview and the extension            │
 │  matcher.ts      RegexMatcher: findMatches() in a worker thread, timed          │
 │  configuration.ts  getConfig(): the only settings reader                        │
 └──────────────────────────────────────┬──────────────────────────────────────────┘
-                                       │ explainRegex(), ExplanationRenderer, RegexFinder, findMatches
+                                       │ explainRegex(), ExplanationRenderer, stateMachine(), RegexFinder, findMatches
 ┌──────────────────────────── Library (packages/regex-explain) ───────────────────┐
 │  index.ts        public API                                                     │
 │  explainer.ts    regexpp AST ─> ExplanationNode tree, length, warnings          │
 │  render.ts       ExplanationRenderer: Markdown, plain text, or model            │
+│  machine.ts      stateMachine(): regexpp AST ─> transitions, choices, repeats   │
 │  text.ts         wording helpers, code span splitting                           │
 │  locator.ts      RegexFinder: tree-sitter parse + query ─> LocatedRegex[]       │
 │  compiler.ts     LANGUAGES: grammar and query per language ID                   │
@@ -127,6 +130,14 @@ error with the `caret` under it, which they print, so a long multi-line selectio
 whole. Markdown uses the descriptions as they are, `text` joins the parts with code in double
 quotes, and table cells escape `|`.
 
+### `machine.ts`
+
+`stateMachine()` parses the pattern again with `parseRegex()`, the parser setup it shares with
+`explainRegex`, and builds a tree of transitions, sequences, choices, repeats, and groups. It merges
+literal runs as `explainSequence` does, so each transition takes its description from the
+explanation node with the same source span; an element without one, such as the `\d` in `\d+`, takes
+its quantifier's.
+
 ### `text.ts`
 
 `code()` builds code spans that survive backticks, `describeCodePoint()` names characters (named
@@ -182,14 +193,15 @@ display: the summary sentence, `L1–2` line labels, and `$1` or named group lab
   cursor to `ExplanationPanel.follow`. That shows it only when the panel is open and the regex
   differs, and, unlike `show`, does not reveal the panel, so the panel stays where the user put it.
   A cursor outside any regex leaves the panel as it is.
-- `preview.ts`: `ExplainCommandHandler` picks the hover link argument, the editor target, or an
+- `explain.ts`: `ExplainCommandHandler` picks the hover link argument, the editor target, or an
   input box, and shows it in the panel. Menus pass a `Uri`, which the library's `isRegexSource`
   rejects.
 
 `src/webview/` holds the explanation panel. `host.ts` and `panel.ts` run in the extension host and
-belong to the extension's TypeScript project; `main.ts` runs in the webview and has its own
-`tsconfig.json` with DOM types, which compiles only it and `protocol.ts`, the messages the two sides
-share.
+belong to the extension's TypeScript project; `main.ts` and `results.ts` run in the webview and have
+their own `tsconfig.json` with DOM types, which compiles only them and `protocol.ts`, the messages
+the two sides share. `webview/test/` holds the tests of `results.ts`, with a `tsconfig.json` that
+adds Node types; `npm run test:unit` runs them with `tsx` in a happy-dom window over `panel.html`.
 
 - `webview/host.ts`: `ExplanationPanel` keeps one webview panel beside the editor, reused for each
   regex, and answers the page's match requests with `RegexMatcher`, up to `MATCH_LIMIT` matches. A
@@ -198,13 +210,13 @@ share.
   from `dist/`.
 - `webview/panel.ts`: `PanelTemplate` reads `panel.html` and the `parts.html` partial once, then
   renders `ExplanationRenderer.model()` with Mustache, adding each row's indent, the error's caret
-  line, and highlighted HTML for the literal, each row's `raw`, and a warning's fix. Every other
-  value is escaped with `escape-html`; the template inserts the highlighted HTML unescaped, because
-  Shiki has already escaped its text. The page also holds the `match-item` and `match-group`
-  `<template>` elements that the panel script clones. It does not import `vscode`, so it is tested
-  in Node, reading the templates from `src/webview/`; the extension reads the copies in `dist/`.
-  Markup belongs in the templates, not in TypeScript strings; Prettier skips the templates because
-  its HTML formatter would rewrap Mustache tags.
+  line, highlighted HTML for the literal, each row's `raw`, and a warning's fix, and the laid-out
+  state machine. Every other value is escaped with `escape-html`; the template inserts the
+  highlighted HTML unescaped, because Shiki has already escaped its text. The page also holds the
+  `match-item` and `match-group` `<template>` elements that the panel script clones. It does not
+  import `vscode`, so it is tested in Node, reading the templates from `src/webview/`; the extension
+  reads the copies in `dist/`. Markup belongs in the templates, not in TypeScript strings; Prettier
+  skips the templates because its HTML formatter would rewrap Mustache tags.
 - `webview/highlight.ts`: `highlight()` tokenizes a pattern with Shiki's TextMate `regexp` grammar,
   through the synchronous core and its JavaScript regex engine, so rendering needs neither `await`
   nor WebAssembly. It runs in the extension host and cannot see the webview's theme, so each token
@@ -212,15 +224,25 @@ share.
   `panel.css` uses the Light+ colors unless the body has the `vscode-dark` class or a dark
   `vscode-high-contrast` class. Rows are highlighted without their surrounding pattern, so a class
   member such as `+` in `[+-]` is colored as a quantifier.
+- `webview/diagram.ts`: `layoutMachine()` lays out `stateMachine()` left to right in two passes:
+  `measure` sizes each part from its children (label widths are estimated from character counts),
+  then `place` assigns coordinates and SVG path data. It returns plain lists of states, lines,
+  transitions, loops, boxes, and tooltips that `panel.html` draws, so no markup is built in
+  TypeScript; colors come from `--vscode-charts-*` theme variables in `panel.css`.
 - `webview/panel.html`, `webview/parts.html`, `webview/panel.css`: the page's templates and its
   stylesheet, which uses `--vscode-*` theme variables. They sit beside `webview/main.ts` because the
   script and styles depend on the page's IDs and classes.
-- `webview/main.ts`: runs in the webview. It numbers the gutter from the input's lines and follows
-  the inner textarea's scrolling (through `wrappedElement`, with wrapping off and a fixed line
-  height), debounces match requests, lists results by cloning the page's templates, selects a
-  clicked match, and stacks the panes below 600 px. It keeps the input in `setState`. It has no
-  automated tests; `panel.ts` and `protocol.ts` hold the testable logic, and matching runs in the
-  library's `findMatches`.
+- `webview/main.ts`: runs in the webview and connects the page's elements. It follows the inner
+  textarea's scrolling in the gutter (through `wrappedElement`, with wrapping off and a fixed line
+  height), keeps the input and the entries checkbox in `setState`, and stacks the panes below 600
+  px. It shows a state machine step's tooltip (the element its `aria-describedby` names) on hover or
+  focus. It has no automated tests; the logic it calls is in `results.ts`, and the diagram's layout
+  in `diagram.ts`.
+- `webview/results.ts`: `lineNumbers()` numbers the gutter, `MatchRequests` sends a match request
+  once the input stops changing and tells the reply to the last request from stale ones,
+  `showResults()` lists matches or entries by cloning the page's `<template>` elements, and
+  `selectMatch()` selects a clicked match in the input. It works on the elements it is given, so it
+  is tested without VS Code.
 - `webview/protocol.ts`: the webview message types and `isMatchMessage`. It imports only types, so
   both builds include it.
 - `matcher.ts`: `RegexMatcher` runs each request through the library's `findMatches` in a new

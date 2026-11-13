@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { describe, it } from "mocha";
 import * as vscode from "vscode";
-import { EXPLAIN_COMMAND } from "../../preview";
+import { EXPLAIN_COMMAND } from "../../explain";
 import { activateExtension } from "./testing";
 
 describe("extension", () => {

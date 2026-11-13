@@ -10,7 +10,7 @@
     }
   },
   "include": ["src/**/*"],
-  "exclude": ["src/webview/main.ts"],
+  "exclude": ["src/webview/main.ts", "src/webview/results.ts", "src/webview/test"],
   "references": [
     {
       "path": "../regex-explain"

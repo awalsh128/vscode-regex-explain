@@ -40,8 +40,8 @@ Matches exactly 8 characters.
 
 <!-- prettier-ignore -->
 ```md
-| Code Point | Explanation |
-| ---------- | ----------- |
+| Pattern | Explanation |
+| ------- | ----------- |
 | `^` | Assert position is at the start of the input |
 | `\d{3}` | Match a digit (0-9), exactly 3 times |
 | `-` | Match the character `-` |
@@ -102,8 +102,8 @@ type guard that tells whether an untyped value, such as a command argument, has 
 `new ExplanationRenderer(result)` renders an `ExplainResult` in several formats:
 
 - `markdownList(options?)`: a nested Markdown list, as in hovers.
-- `markdownTable(options?)`: a Markdown table with Code Point and Explanation columns. Nested steps
-  are indented with `&nbsp;`.
+- `markdownTable(options?)`: a Markdown table with Pattern and Explanation columns. Nested steps are
+  indented with `&nbsp;`.
 - `text(options?)`: aligned plain text, with code spans shown in double quotes.
 - `model()`: everything a view shows, as an `ExplanationModel`, which the other formats render from:
   the regex as a `literal` (`/pattern/flags`), the `error` (`ErrorModel`: the `message` reason such
@@ -120,6 +120,60 @@ The Markdown and text formats put warnings first, then the steps, the match leng
 Invalid patterns render the error with a caret under its position, showing only the pattern's line
 that holds it. `RenderOptions`: `{ title?: boolean }` starts the output with the whole regex (under
 a heading in Markdown).
+
+### `stateMachine(explanation)`
+
+`stateMachine(explanation)` describes a successful `explainRegex` result as a state machine, nested
+by the pattern's structure so that a view can lay it out. It returns a `MachinePart`, one of:
+
+- `MachineTransition`: one step between two states, with its `kind` (`TransitionKind`: `literal`,
+  `set`, `assertion`, `backreference`, or `empty`), its pattern source as the `label`, and its
+  `start` and `end` offsets. A run of literal characters is one transition.
+- `MachineSequence`: `steps` that follow each other, with a state between each two.
+- `MachineChoice`: `options` that fork from one state and rejoin at another.
+- `MachineRepeat`: a `body` matched `min` to `max` times (`Infinity` when unbounded), `greedy` or
+  not.
+- `MachineGroup`: a capture group, or a group that changes flags, around a `body`, with a `label`
+  such as `#1 year` or `flags i`. Non-capturing groups without flags leave no trace.
+
+Transitions, repeats, and groups carry the `description` of the pattern source they cover from the
+explanation, and the same text as `parts`, as in `ExplanationRenderer`'s model.
+
+```ts
+const result = explainRegex("x+|y");
+if (result.ok) {
+  const keys = ["type", "options", "body", "min", "max", "kind", "label", "description"];
+  console.log(JSON.stringify(stateMachine(result), keys, 2));
+}
+```
+
+prints (`JSON.stringify` writes `Infinity` as `null`):
+
+```json
+{
+  "type": "choice",
+  "options": [
+    {
+      "type": "repeat",
+      "body": {
+        "type": "transition",
+        "kind": "literal",
+        "label": "x",
+        "description": "Option 1: match the character `x`, one or more times (as many as possible)"
+      },
+      "min": 1,
+      "max": null,
+      "description": "Option 1: match the character `x`, one or more times (as many as possible)"
+    },
+    {
+      "type": "transition",
+      "kind": "literal",
+      "label": "y",
+      "description": "Option 2: match the character `y`"
+    }
+  ]
+}
+```
 
 ### `describeCount(min, max)`
 

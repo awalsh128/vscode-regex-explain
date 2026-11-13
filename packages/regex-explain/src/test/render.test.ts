@@ -180,8 +180,8 @@ describe("ExplanationRenderer.markdownTable", () => {
 
     // Assert
     expect(md.split("\n").slice(0, 5)).to.deep.equal([
-      "| Code Point | Explanation |",
-      "| ---------- | ----------- |",
+      "| Pattern | Explanation |",
+      "| ------- | ----------- |",
       "| `(a\\|b)` | Capture group #1: |",
       "| &nbsp;&nbsp;`a\\|b` | Match one of 2 alternatives: |",
       "| &nbsp;&nbsp;&nbsp;&nbsp;`a` | Option 1: match the character `a` |",
