@@ -43,7 +43,10 @@ export interface FlagModel {
 
 /** A syntax error, ready to display. */
 export interface ErrorModel {
-  /** The parser's message. */
+  /**
+   * Why the pattern is invalid, such as "Unterminated group", without the parser's "Invalid regular
+   * expression" label and copy of the pattern, which views show on their own.
+   */
   readonly message: string;
   /** The pattern. */
   readonly pattern: string;
@@ -98,7 +101,7 @@ export class ExplanationRenderer {
       return {
         literal: literal(result),
         error: {
-          message: result.message,
+          message: errorReason(result.message, result.pattern),
           pattern: result.pattern,
           index: result.index,
           caret: result.index === undefined ? undefined : "^".padStart(result.index + 1),
@@ -255,6 +258,22 @@ export class ExplanationRenderer {
  */
 function literal(source: RegexSource): string {
   return `/${source.pattern}/${source.flags}`;
+}
+
+/**
+ * Reduces a parser message, such as "Invalid regular expression: /a(/u: Unterminated group", to its
+ * reason.
+ *
+ * @param message The message from `explainRegex`.
+ * @param pattern The pattern, which the message may repeat between slashes before the reason.
+ *
+ * @returns The reason, or the message unchanged if it has another form.
+ */
+function errorReason(message: string, pattern: string): string {
+  const label = "Invalid regular expression: ";
+  const rest = message.startsWith(label) ? message.slice(label.length) : message;
+  const source = `/${pattern}/`;
+  return rest.startsWith(source) ? rest.slice(source.length).replace(/^[a-z]*: /, "") : rest;
 }
 
 /**

@@ -98,7 +98,7 @@ describe("PanelTemplate", () => {
 
     // Assert
     expect(html).to.include(
-      '<p class="error" role="alert"><strong>Invalid regular expression:</strong> Invalid regular expression: /ab(/: Unterminated group</p>'
+      '<p class="error" role="alert"><strong>Invalid regular expression:</strong> Unterminated group</p>'
     );
     expect(html).to.include('<pre class="caret">ab(\n   ^</pre>');
     expect(html).to.not.include("<vscode-table ");

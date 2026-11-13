@@ -76,8 +76,9 @@ describe("ExplanationRenderer.markdownList", () => {
     const md = new ExplanationRenderer(result).markdownList();
 
     // Assert
-    expect(md).to.include("**Invalid regular expression:**");
-    expect(md).to.include("```text\nab(\n   ^\n```");
+    expect(md).to.equal(
+      "**Invalid regular expression:** Unterminated group\n\n```text\nab(\n   ^\n```"
+    );
   });
 });
 
@@ -144,7 +145,7 @@ describe("ExplanationRenderer.text", () => {
     const text = new ExplanationRenderer(result).text();
 
     // Assert
-    expect(text).to.match(/^Invalid regular expression: .*\n {2}ab\(\n {5}\^$/);
+    expect(text).to.equal("Invalid regular expression: Unterminated group\n  ab(\n     ^");
   });
 });
 
@@ -174,8 +175,9 @@ describe("ExplanationRenderer.markdownTable", () => {
     const md = new ExplanationRenderer(result).markdownTable();
 
     // Assert
-    expect(md).to.match(/^\*\*Invalid regular expression:\*\*/);
-    expect(md).to.not.include("| Code Point |");
+    expect(md).to.equal(
+      "**Invalid regular expression:** Unterminated group\n\n```text\nab(\n   ^\n```"
+    );
   });
 });
 
@@ -247,7 +249,7 @@ describe("ExplanationRenderer.model", () => {
     expect(model).to.deep.equal({
       literal: "/ab(/",
       error: {
-        message: "Invalid regular expression: /ab(/: Unterminated group",
+        message: "Unterminated group",
         pattern: "ab(",
         index: 3,
         caret: "   ^",
@@ -256,6 +258,20 @@ describe("ExplanationRenderer.model", () => {
       rows: [],
       flags: [],
       multiline: false,
+    });
+  });
+
+  [
+    { pattern: "a", flags: "x", expected: "Invalid flag 'x'" },
+    { pattern: "(", flags: "u", expected: "Unterminated group" },
+    { pattern: "a/: b(", flags: NO_FLAGS, expected: "Unterminated group" },
+  ].forEach(({ pattern, flags, expected }) => {
+    it(`should reduce the error for /${pattern}/${flags} to "${expected}"`, () => {
+      // Act
+      const model = new ExplanationRenderer(explainRegex(pattern, flags)).model();
+
+      // Assert
+      expect(model.error?.message).to.equal(expected);
     });
   });
 
