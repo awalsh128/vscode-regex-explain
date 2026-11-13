@@ -113,6 +113,9 @@ describe("LANGUAGES", () => {
     },
     { language: "ruby", source: 'Regexp.new("a\\sb")', expected: "a b" },
     { language: "ruby", source: "Regexp.new('a\\sb')", expected: "a\\sb" },
+    { language: "ruby", source: "Regexp.new('a\\\\b')", expected: "a\\b" },
+    { language: "ruby", source: "Regexp.new('it\\'s')", expected: "it's" },
+    { language: "ruby", source: "Regexp.new(%q(a\\)b\\\\))", expected: "a)b\\" },
     { language: "javascript", source: 'new RegExp("a\\sb")', expected: "asb" },
   ].forEach(({ language, source, expected }) => {
     it(`should decode ${source} in ${language} as ${JSON.stringify(expected)}`, async () => {
