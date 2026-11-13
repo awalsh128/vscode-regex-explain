@@ -13,7 +13,7 @@ import * as path from "path";
 /** Reads a repository file by its path relative to the repository root. */
 export type ReadFile = (relativePath: string) => string;
 
-/** Lists repository files under a directory, relative to the repository root. */
+/** Lists repository files in a directory and its subdirectories, relative to the repo root. */
 export type ListFiles = (relativeDir: string) => string[];
 
 /** Runs a command in the repository and throws if it cannot start or fails. */
@@ -154,16 +154,19 @@ export function checkCommands(read: ReadFile): string[] {
 }
 
 /**
- * Checks that only the settings module reads settings, so other modules use its accessors.
+ * Checks that only the settings module reads settings, so other modules use its accessors. Every
+ * extension source file is checked, in any subdirectory of `src/` except the tests, which set
+ * settings directly.
  *
  * @param read Reads a repository file.
- * @param sourceFiles Extension source files, relative to the repository root.
+ * @param list Lists repository files.
  *
  * @returns The problems found.
  */
-export function checkSettingsAccess(read: ReadFile, sourceFiles: string[]): string[] {
+export function checkSettingsAccess(read: ReadFile, list: ListFiles): string[] {
   return (
-    sourceFiles
+    list(`${EXTENSION_DIR}/src`)
+      .filter((file) => file.endsWith(".ts") && !file.startsWith(`${EXTENSION_DIR}/src/test/`))
       // A plain text search also catches calls on aliased imports such as `ws.getConfiguration(`.
       .filter((file) => file !== SETTINGS_MODULE && read(file).includes("getConfiguration("))
       .map(
@@ -214,6 +217,7 @@ export function checkTestFiles(list: ListFiles): string[] {
   return groups.flatMap(({ source, tests }) => {
     const testNames = new Set(tests.flatMap((dir) => list(dir)).map((file) => path.basename(file)));
     return list(source)
+      .filter((file) => path.posix.dirname(file) === source)
       .filter((file) => file.endsWith(".ts") && !file.endsWith(".d.ts"))
       .filter((file) => !testNames.has(path.basename(file).replace(/\.ts$/, ".test.ts")))
       .map(
@@ -250,11 +254,10 @@ export function checkPackages(read: ReadFile): string[] {
  * @returns The problems found.
  */
 export function checkConsistency(read: ReadFile, list: ListFiles): string[] {
-  const extensionSources = list(`${EXTENSION_DIR}/src`).filter((file) => file.endsWith(".ts"));
   return [
     ...checkSettings(read),
     ...checkCommands(read),
-    ...checkSettingsAccess(read, extensionSources),
+    ...checkSettingsAccess(read, list),
     ...checkLibraryExports(read),
     ...checkTestFiles(list),
     ...checkPackages(read),
@@ -300,13 +303,13 @@ if (require.main === module) {
     existsSync(path.join(__dirname, "../package.json")) ? ".." : "../.."
   );
   const read: ReadFile = (relativePath) => readFileSync(path.join(root, relativePath), "utf-8");
-  // Lists files directly in a directory, not recursively; missing directories are empty.
+  // Missing directories are empty.
   const list: ListFiles = (relativeDir) => {
     const dir = path.join(root, relativeDir);
     return existsSync(dir)
-      ? readdirSync(dir)
+      ? readdirSync(dir, { recursive: true, encoding: "utf-8" })
           .filter((name) => statSync(path.join(dir, name)).isFile())
-          .map((name) => `${relativeDir}/${name}`)
+          .map((name) => `${relativeDir}/${name.split(path.sep).join("/")}`)
       : [];
   };
   const [command = "check"] = process.argv.slice(2);
