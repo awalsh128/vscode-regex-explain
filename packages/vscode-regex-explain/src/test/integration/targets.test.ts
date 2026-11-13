@@ -13,6 +13,9 @@ const SOURCE = "const re = /a+/g;";
 /** A position inside the literal of {@link SOURCE}. */
 const IN_LITERAL = new vscode.Position(0, 13);
 
+/** The position right after the literal of {@link SOURCE}, before the semicolon. */
+const AFTER_LITERAL = new vscode.Position(0, 16);
+
 /**
  * Creates a locator that loads grammars from the bundle, as the extension does.
  *
@@ -82,6 +85,28 @@ describe("RegexLocator", () => {
 
     // Assert
     expect(target?.input.pattern).to.equal("b*");
+  });
+
+  it("should find the literal when the cursor is right after it", async () => {
+    // Arrange
+    const editor = await openEditor(SOURCE, "typescript");
+
+    // Act
+    const target = await locator().targetAt(editor, AFTER_LITERAL);
+
+    // Assert
+    expect(target?.input).to.deep.equal({ pattern: "a+", flags: "g" });
+  });
+
+  it("should not find the literal when hovering the character after it", async () => {
+    // Arrange
+    const editor = await openEditor(SOURCE, "typescript");
+
+    // Act
+    const target = await locator().regexAt(editor.document, AFTER_LITERAL);
+
+    // Assert
+    expect(target).to.equal(undefined);
   });
 
   it("should prefer a selection containing the position", async () => {
