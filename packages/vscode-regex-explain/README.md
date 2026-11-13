@@ -168,9 +168,10 @@ Every setting can also be set for one language:
 
 - Patterns are explained with **JavaScript** regex syntax and meaning, whatever the file's language.
   Most syntax is shared, but constructs specific to other engines, such as Python's `(?P<name>...)`,
-  inline flags such as `(?i)`, or possessive quantifiers, are reported as syntax errors. Meaning can
-  differ too: Ruby's `^` and `$` also match at line breaks, but are explained as the start and end
-  of the input.
+  inline flags such as `(?i)`, or possessive quantifiers, are reported as syntax errors. Escapes
+  JavaScript lacks, such as `\A` and `\z`, are explained as the plain letters `A` and `z`. Meaning
+  can differ too: Ruby's `^` and `$` also match at line breaks, but are explained as the start and
+  end of the input.
 - Flags are translated to JavaScript, such as Ruby's `m` to `s`. Flags that do not change what
   matches, such as Ruby's `o` or PHP's `u`, are ignored; others, such as `x`, are reported.
 - Only the calls in the [Supported Languages](#supported-languages) table are recognized, by name:
