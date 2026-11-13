@@ -121,9 +121,10 @@ pattern, and `isRegexSource` is the type guard for untyped `RegexSource` values.
 `ExplanationRenderer` wraps an `ExplainResult`. `model()` is the only place that reads the result:
 it flattens the node tree with depths and pairs each description with its `splitCodeSpans` parts.
 `markdownList`, `markdownTable`, and `text` render from the model in one layout: warnings, then the
-steps, the length sentence, and the flags. A syntax error's model carries the `caret` line that all
-three formats and the panel print under the pattern. Markdown uses the descriptions as they are,
-`text` joins the parts with code in double quotes, and table cells escape `|`.
+steps, the length sentence, and the flags. A syntax error's model carries only the parser's reason,
+since all three formats and the panel add their own label, and the `caret` line they print under the
+pattern. Markdown uses the descriptions as they are, `text` joins the parts with code in double
+quotes, and table cells escape `|`.
 
 ### `text.ts`
 

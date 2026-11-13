@@ -106,15 +106,15 @@ type guard that tells whether an untyped value, such as a command argument, has 
   are indented with `&nbsp;`.
 - `text(options?)`: aligned plain text, with code spans shown in double quotes.
 - `model()`: everything a view shows, as an `ExplanationModel`, which the other formats render from:
-  the regex as a `literal` (`/pattern/flags`), the `error` (`ErrorModel`: `message`, `pattern`,
-  `index`, and a `caret` line such as `"   ^"` to print under the pattern) for an invalid pattern,
-  `warnings` (`WarningModel`: the `fix` as a literal), the steps as `rows` (`ExplanationRow`: `raw`
-  and nesting `depth`), the `length` sentence such as "Matches 2 to 4 characters.", `flags`
-  (`FlagModel`: `flag` and `name`), and whether the pattern is `multiline`. Each warning, row, and
-  flag has a `description`, which may contain Markdown code spans, and the same text as `parts`:
-  `TextPart`s with the `text` and whether it is `code`, so that HTML or other UIs render it without
-  a Markdown parser. For an invalid pattern, the model has only the `literal` and `error`; its lists
-  are empty.
+  the regex as a `literal` (`/pattern/flags`), the `error` (`ErrorModel`: the `message` reason such
+  as "Unterminated group", `pattern`, `index`, and a `caret` line such as `"   ^"` to print under
+  the pattern) for an invalid pattern, `warnings` (`WarningModel`: the `fix` as a literal), the
+  steps as `rows` (`ExplanationRow`: `raw` and nesting `depth`), the `length` sentence such as
+  "Matches 2 to 4 characters.", `flags` (`FlagModel`: `flag` and `name`), and whether the pattern is
+  `multiline`. Each warning, row, and flag has a `description`, which may contain Markdown code
+  spans, and the same text as `parts`: `TextPart`s with the `text` and whether it is `code`, so that
+  HTML or other UIs render it without a Markdown parser. For an invalid pattern, the model has only
+  the `literal` and `error`; its lists are empty.
 
 The Markdown and text formats put warnings first, then the steps, the match length, and the flags.
 Invalid patterns render the error with a caret under its position. `RenderOptions`:
