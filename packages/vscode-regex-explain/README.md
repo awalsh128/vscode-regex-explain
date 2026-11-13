@@ -2,7 +2,7 @@
   <img src="images/logo.png" alt="Regex Explain logo" width="128" height="128">
 </p>
 
-<h1 align="center">Regex Explain</h1>
+<h1 align="center">Regex Explain Lab</h1>
 
 <p align="center">
   Explain regular expressions in plain English, step by step, and catch patterns that can

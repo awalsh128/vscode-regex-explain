@@ -2,7 +2,7 @@
   <img src="packages/vscode-regex-explain/images/logo.png" alt="Regex Explain logo" width="128" height="128">
 </p>
 
-<h1 align="center">Regex Explain</h1>
+<h1 align="center">Regex Explain Lab</h1>
 
 <p align="center">
   <a href="https://marketplace.visualstudio.com/items?itemName=awalsh128.regex-explain"><img src="https://vsmarketplacebadges.dev/version/awalsh128.regex-explain.svg?label=Version&color=%2314b8a6" alt="Version"></a>
