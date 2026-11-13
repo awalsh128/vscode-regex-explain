@@ -27,6 +27,8 @@ export class ExplanationPanel implements vscode.Disposable {
   private readonly template: PanelTemplate;
   private panel: vscode.WebviewPanel | undefined;
   private input: RegexSource | undefined;
+  /** Cancels the match request in progress, which a newer request or closing the panel replaces. */
+  private pending: AbortController | undefined;
 
   /**
    * Constructs a new ExplanationPanel.
@@ -112,20 +114,33 @@ export class ExplanationPanel implements vscode.Disposable {
    *
    * @param message The message.
    *
-   * @returns The reply, or undefined for messages that need none or arrive with no regex shown.
+   * @returns The reply, or undefined for messages that need none, arrive with no regex shown, or
+   *   are superseded by a newer request before they finish, which also stops their matching.
    */
   async respond(message: unknown): Promise<MatchesMessage | undefined> {
     if (!isMatchMessage(message) || !this.input) {
       return undefined;
     }
     const { pattern, flags } = this.input;
-    const response = await this.matcher.match({
+    this.pending?.abort();
+    const pending = new AbortController();
+    this.pending = pending;
+    const request = {
       pattern,
       flags,
       text: message.text,
       limit: MATCH_LIMIT,
       entries: message.entries,
+    };
+    const response = await this.matcher.match(request, pending.signal).catch((error: unknown) => {
+      if (pending.signal.aborted) {
+        return undefined;
+      }
+      throw error;
     });
+    if (!response) {
+      return undefined;
+    }
     return {
       type: "matches",
       id: message.id,
@@ -161,6 +176,7 @@ export class ExplanationPanel implements vscode.Disposable {
       }
     });
     panel.onDidDispose(() => {
+      this.pending?.abort();
       this.panel = undefined;
       this.input = undefined;
     });

@@ -41,10 +41,10 @@ The command, or that link, calls `ExplanationPanel.show`, which sets the webview
 `PanelTemplate.render`. As the user types or toggles separate entries, the webview script posts
 `{ type: "match", id, text, entries }`; `ExplanationPanel.respond` runs the shown regex through
 `RegexMatcher`, which starts a worker thread for `findMatches` and terminates it after
-`MATCH_TIMEOUT_MS`, and posts back `{ type: "matches", id, model, regex101Url }`, where
-`regex101Url` opens the regex and the text on regex101.com and `model` is the library's
-`describeMatches` of the response and holds the worded summary and matches. The script ignores
-replies to superseded ids.
+`MATCH_TIMEOUT_MS` or when a newer request, or closing the panel, cancels it, and posts back
+`{ type: "matches", id, model, regex101Url }`, where `regex101Url` opens the regex and the text on
+regex101.com and `model` is the library's `describeMatches` of the response and holds the worded
+summary and matches. The script ignores replies to superseded ids.
 
 ## Repository Layout
 
@@ -187,8 +187,10 @@ belong to the extension's TypeScript project; `main.ts` runs in the webview and 
 share.
 
 - `webview/host.ts`: `ExplanationPanel` keeps one webview panel beside the editor, reused for each
-  regex, and answers the page's match requests with `RegexMatcher`, up to `MATCH_LIMIT` matches. Its
-  page allows only its own nonce-tagged script and files from `dist/`.
+  regex, and answers the page's match requests with `RegexMatcher`, up to `MATCH_LIMIT` matches. A
+  new request aborts the one in progress, whose reply the page would ignore, so typing against a
+  slow pattern runs one worker at a time. Its page allows only its own nonce-tagged script and files
+  from `dist/`.
 - `webview/panel.ts`: `PanelTemplate` reads `panel.html` and the `parts.html` partial once, then
   renders `ExplanationRenderer.model()` with Mustache, adding each row's indent, the error's caret
   line, and highlighted HTML for the literal, each row's `raw`, and a warning's fix. Every other
@@ -217,9 +219,10 @@ share.
 - `webview/protocol.ts`: the webview message types and `isMatchMessage`. It imports only types, so
   both builds include it.
 - `matcher.ts`: `RegexMatcher` runs each request through the library's `findMatches` in a new
-  `worker_threads` worker, so that catastrophic backtracking can be stopped. The module is also the
-  worker's entry point (`dist/matchWorker.js`); it answers requests only in threads that
-  `RegexMatcher` started, which it marks through `workerData`.
+  `worker_threads` worker, so that catastrophic backtracking can be stopped, at the time limit or
+  when the request's `AbortSignal` fires. The module is also the worker's entry point
+  (`dist/matchWorker.js`); it answers requests only in threads that `RegexMatcher` started, which it
+  marks through `workerData`.
 - `targets.ts`: `RegexLocator` returns the selection containing a position (any language) or the
   regex at it (configured languages). Regexes are cached per document version as a promise.
 - `configuration.ts`: `getConfig()` and `DEFAULT_CONFIGURATION`. An integration test checks the

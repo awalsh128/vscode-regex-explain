@@ -84,6 +84,23 @@ describe("ExplanationPanel", () => {
     });
   });
 
+  it("should drop the reply to a request that a newer one supersedes", async () => {
+    // Arrange
+    const panel = newPanel();
+    panel.show(INPUT);
+
+    // Act
+    const [first, second] = await Promise.all([
+      panel.respond({ type: "match", id: 1, text: "a", entries: false }),
+      panel.respond({ type: "match", id: 2, text: "aa", entries: false }),
+    ]);
+    panel.dispose();
+
+    // Assert
+    expect(first).to.equal(undefined);
+    expect(second?.model.matches.map((m) => m.text)).to.deep.equal(["aa"]);
+  });
+
   it("should not answer before a regex is shown", async () => {
     // Arrange
     const panel = newPanel();
