@@ -1,8 +1,7 @@
 {
-  "name": "regex-explain",
-  "displayName": "Regex Explain Lab",
+  "name": "regex-explain-monorepo",
   "private": true,
-  "description": "Explain regular expressions in plain English with hover, tooltips, and a dedicated panel for experimentation.",
+  "description": "Explain regular expressions in plain English: a TypeScript library and a VS Code extension",
   "version": "0.0.0",
   "brokenversions": [],
   "author": {
