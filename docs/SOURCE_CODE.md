@@ -5,7 +5,7 @@
 ```
 ┌──────────────────────────── VS Code extension (packages/vscode-regex-explain) ──┐
 │  extension.ts ── registers ──┬─> hover.ts    RegexHoverProvider                 │
-│                              ├─> preview.ts  ExplainCommandHandler              │
+│                              ├─> explain.ts  ExplainCommandHandler              │
 │                              └─> follow.ts   PanelFollower: regex at the cursor │
 │  targets.ts      RegexLocator: selection or regex at a position (cached)        │
 │  webview/host.ts  ExplanationPanel: opens the panel, answers match requests     │
@@ -183,7 +183,7 @@ display: the summary sentence, `L1–2` line labels, and `$1` or named group lab
   cursor to `ExplanationPanel.follow`. That shows it only when the panel is open and the regex
   differs, and, unlike `show`, does not reveal the panel, so the panel stays where the user put it.
   A cursor outside any regex leaves the panel as it is.
-- `preview.ts`: `ExplainCommandHandler` picks the hover link argument, the editor target, or an
+- `explain.ts`: `ExplainCommandHandler` picks the hover link argument, the editor target, or an
   input box, and shows it in the panel. Menus pass a `Uri`, which the library's `isRegexSource`
   rejects.
 

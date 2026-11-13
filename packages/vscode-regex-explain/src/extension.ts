@@ -1,10 +1,10 @@
 import * as path from "path";
 import { RegexFinder } from "regex-explain";
 import * as vscode from "vscode";
+import { EXPLAIN_COMMAND, ExplainCommandHandler } from "./explain";
 import { PanelFollower } from "./follow";
 import { RegexHoverProvider } from "./hover";
 import { RegexMatcher } from "./matcher";
-import { EXPLAIN_COMMAND, ExplainCommandHandler } from "./preview";
 import { RegexLocator } from "./targets";
 import { ExplanationPanel } from "./webview/host";
 import { PanelTemplate } from "./webview/panel";
