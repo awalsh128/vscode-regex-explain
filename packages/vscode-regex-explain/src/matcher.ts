@@ -32,21 +32,37 @@ export class RegexMatcher {
    * Finds the matches of a regex in text.
    *
    * @param request The regex, the text, and the most matches to return.
+   * @param signal Cancels the request, stopping its worker, such as when a newer request replaces
+   *   it.
    *
    * @returns The matches; `timedOut` if the time limit passed, or `error` if the worker failed.
+   *   Rejects with the signal's reason if the request is cancelled.
    */
-  match(request: MatchRequest): Promise<MatchResponse> {
-    return new Promise((resolve) => {
+  match(request: MatchRequest, signal?: AbortSignal): Promise<MatchResponse> {
+    return new Promise((resolve, reject) => {
+      if (signal?.aborted) {
+        reject(signal.reason);
+        return;
+      }
       const worker = new Worker(this.workerPath, { workerData: WORKER_ROLE });
-      const finish = (response: MatchResponse): void => {
+      const stop = (): void => {
         clearTimeout(timer);
+        signal?.removeEventListener("abort", cancel);
         void worker.terminate();
+      };
+      const finish = (response: MatchResponse): void => {
+        stop();
         resolve(response);
+      };
+      const cancel = (): void => {
+        stop();
+        reject(signal?.reason);
       };
       const timer = setTimeout(
         () => finish({ matches: [], truncated: false, timedOut: true }),
         this.timeoutMs
       );
+      signal?.addEventListener("abort", cancel, { once: true });
       worker.once("message", (response: MatchResponse) => finish(response));
       worker.once("error", (error: Error) =>
         finish({ matches: [], truncated: false, error: error.message })
