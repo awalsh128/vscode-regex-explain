@@ -1,8 +1,9 @@
 # Pull requests target staging, since main only fast-forwards to it (see CONTRIBUTING.md#branches).
 # Titles use the build type, which doesn't trigger a release; retitle a pull request as fix: when a
-# runtime dependency update should ship. Grouping keeps one pull request, and a title within
-# commitlint's 100-character limit, per ecosystem and update type. The cooldown skips releases
-# younger than a week, giving a compromised release time to be caught and pulled.
+# runtime dependency update should ship. Grouping keeps one pull request per ecosystem and update
+# type. Group names are short because they appear in titles, which commitlint limits to 100
+# characters; retitle a pull request that still goes over. The cooldown skips releases younger than
+# a week, giving a compromised release time to be caught and pulled.
 version: 2
 
 updates:
@@ -37,5 +38,14 @@ updates:
       prefix: build
       include: scope
     groups:
-      npm-minor-and-patch:
+      npm:
         update-types: [minor, patch]
+    ignore:
+      # Pinned to engines.vscode, the oldest VS Code the extension supports; raise them together.
+      - dependency-name: "@types/vscode"
+      # Majors follow engines.node, the oldest Node the packages support.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # typescript-eslint must support a TypeScript major before the project can move to it.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
