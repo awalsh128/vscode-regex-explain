@@ -122,6 +122,25 @@ describe("PanelFollower", () => {
     expect(shown).to.deep.equal({ pattern: "b+", flags: "i" });
   });
 
+  it("should show the selection, in a language without regex detection", async () => {
+    // Arrange
+    const editor = await openEditor("find x+y here", "plaintext");
+    const panel = newPanel();
+    const follower = new PanelFollower(newLocator(), panel);
+    panel.show({ pattern: "a+", flags: "g" });
+    await vscode.window.showTextDocument(editor.document);
+
+    // Act
+    editor.selection = new vscode.Selection(0, 5, 0, 8);
+    await waitFor(() => panel.shown?.pattern === "x+y");
+    const shown = panel.shown;
+    follower.dispose();
+    panel.dispose();
+
+    // Assert
+    expect(shown).to.deep.equal({ pattern: "x+y", flags: "" });
+  });
+
   it("should show the regex as it is edited", async () => {
     // Arrange
     const editor = await openEditor(SOURCE, "typescript");
