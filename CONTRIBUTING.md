@@ -52,12 +52,6 @@ takes several minutes, so it is not part of `npm test` or CI. The report is writ
 `reports/mutation/index.html`, and later runs reuse `reports/stryker-incremental.json` to test only
 changed code. Use it to find gaps in tests for code you changed; the unit tests must pass first.
 
-`npm run test:mutation` runs [StrykerJS](https://stryker-mutator.io/) on the library: it mutates
-`packages/regex-explain/src/*.ts` and reports each mutant the unit tests fail to catch. A full run
-takes several minutes, so it is not part of `npm test` or CI. The report is written to
-`reports/mutation/index.html`, and later runs reuse `reports/stryker-incremental.json` to test only
-changed code. Use it to find gaps in tests for code you changed; the unit tests must pass first.
-
 The extension icon is `packages/vscode-regex-explain/images/logo.png`, rendered from `logo.svg` in
 the same directory. After editing the SVG, render it again at 256×256, for example with
 `inkscape logo.svg --export-type=png --export-filename=logo.png -w 256 -h 256`.
