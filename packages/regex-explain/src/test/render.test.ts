@@ -96,6 +96,46 @@ describe("ExplanationRenderer.text", () => {
     ]);
   });
 
+  it("should start with the title, then warnings and fixes, and end with the flags", () => {
+    // Arrange
+    const result = explainRegex("^(?:a+)+$", "i");
+
+    // Act
+    const text = new ExplanationRenderer(result).text({ title: true });
+
+    // Assert
+    expect(text.split("\n")).to.deep.equal([
+      "/^(?:a+)+$/i",
+      "",
+      'Warning: "a+" is repeated by "(?:a+)+" and can match the same text in many ways, so a ' +
+        "failed match can take exponential time.",
+      "  Equivalent safe pattern: /^a+$/i",
+      "",
+      "^        Assert position is at the start of the input",
+      "(?:a+)+  Group (non-capturing), one or more times (as many as possible):",
+      '  a+     Match the character "a" (case-insensitive), one or more times (as many as possible)',
+      "$        Assert position is at the end of the input",
+      "",
+      "Matches 1 or more characters.",
+      "",
+      "Flags:",
+      "  i  ignoreCase: Ignore case: letters match both upper and lower case.",
+    ]);
+  });
+
+  it("should leave out the fix, flags, and title when there are none", () => {
+    // Arrange
+    const result = explainRegex("^(a*)*$", NO_FLAGS);
+
+    // Act
+    const text = new ExplanationRenderer(result).text();
+
+    // Assert
+    expect(text).to.match(/^Warning: .*\.\n\n\^ /);
+    expect(text).to.not.include("Equivalent safe pattern");
+    expect(text).to.not.include("Flags:");
+  });
+
   it("should report a syntax error with a caret", () => {
     // Arrange
     const result = explainRegex("ab(", NO_FLAGS);

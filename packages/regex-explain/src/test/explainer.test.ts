@@ -173,6 +173,21 @@ describe("explainRegex", () => {
       ]);
     });
 
+    it("should nest an option's steps under it and name an empty option", () => {
+      // Act
+      const lines = outline("a|b+c|");
+
+      // Assert
+      expect(lines).to.deep.equal([
+        "a|b+c| => Match one of 3 alternatives:",
+        "  a => Option 1: match the character `a`",
+        "  b+c => Option 2:",
+        "    b+ => Match the character `b`, one or more times (as many as possible)",
+        "    c => Match the character `c`",
+        "   => Option 3: match the empty string",
+      ]);
+    });
+
     it("should apply inline modifiers only inside their group", () => {
       // Act
       const lines = outline("(?i:a)b");
@@ -216,6 +231,24 @@ describe("explainRegex", () => {
         "  a-z => a character from the character `a` to the character `z`",
         "  _ => the character `_`",
       ]);
+    });
+
+    [
+      { pattern: "[]", flags: "", expected: "[] => Match nothing (an empty class never matches)" },
+      { pattern: "[^]", flags: "", expected: "[^] => Match any character at all" },
+      {
+        pattern: "\\p{RGI_Emoji}",
+        flags: "v",
+        expected: "\\p{RGI_Emoji} => Match a string with Unicode property `RGI_Emoji`",
+      },
+    ].forEach(({ pattern, flags, expected }) => {
+      it(`should explain ${pattern}`, () => {
+        // Act
+        const lines = outline(pattern, flags);
+
+        // Assert
+        expect(lines).to.deep.equal([expected]);
+      });
     });
 
     it("should explain v-flag set subtraction", () => {
