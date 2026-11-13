@@ -7,13 +7,13 @@
     content="default-src 'none'; style-src {{cspSource}} 'unsafe-inline'; script-src 'nonce-{{nonce}}'; font-src {{cspSource}};">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="{{styleUri}}">
-  <title>Regex Explanation</title>
+  <title>{{title}}</title>
 </head>
 
 <body>
   <main>
     <section aria-labelledby="explanation-heading">
-      <h1 id="explanation-heading">RegEx Explanation</h1>
+      <h1 id="explanation-heading">{{title}}</h1>
       <p class="literal"><code class="regex">{{#literal}}/{{{patternHtml}}}/{{flags}}{{/literal}}</code>
         <a class="regex101" href="{{regex101Url}}"
           title="Open this regex and the input text in regex101.com">Open in regex101</a></p>
