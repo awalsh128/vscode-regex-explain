@@ -111,6 +111,7 @@
   "overrides": {
     "glob": ">=14.0.3",
     "minimatch": ">=11.0.2",
-    "deepmerge-ts": ">=8.0.0"
+    "deepmerge-ts": ">=8.0.0",
+    "qs": ">=6.16.1"
   }
 }
