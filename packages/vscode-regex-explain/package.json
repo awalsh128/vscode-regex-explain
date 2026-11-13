@@ -1,7 +1,7 @@
 {
   "name": "regex-explain",
   "private": true,
-  "displayName": "Regex Explain",
+  "displayName": "Regex Explain Lab",
   "description": "Explain regular expressions in plain English on hover, in many languages, with catastrophic backtracking warnings",
   "version": "0.0.0",
   "publisher": "awalsh128",
