@@ -35,7 +35,7 @@
 
 A hover runs: `RegexHoverProvider.provideHover` → `RegexLocator` finds the selection containing the
 position, else the regex under it → `explainRegex` → `ExplanationRenderer.markdownList` →
-`vscode.Hover`, ending with an **Open explanation** command link.
+`vscode.Hover`, starting with an **Open explanation** command link.
 
 The command, or that link, calls `ExplanationPanel.show`, which sets the webview's HTML from
 `PanelTemplate.render`. As the user types or toggles separate entries, the webview script posts
@@ -54,7 +54,7 @@ replies to superseded ids.
                        npm run check, commit-msg runs commitlint
 .github/               Workflows and their composite actions, Octo STS trust policies
                        (chainguard/), issue forms, labels, Copilot instructions and reviewer
-docs/                  This file and the development guidelines
+docs/                  This file, the development guidelines, and agent skill notes (agents/)
 packages/regex-explain/          The npm library (each package keeps a LICENSE copy for its registry
                                  and a release.config.cjs for semantic-release)
 packages/vscode-regex-explain/   The VS Code extension, its test workspace, and its icon
@@ -169,9 +169,10 @@ display: the summary sentence, `L1–2` line labels, and `$1` or named group lab
 - `extension.ts`: `activate` creates one `RegexLocator`, one `RegexMatcher` (for
   `dist/matchWorker.js`), and one `ExplanationPanel`, then registers a hover provider for every
   scheme, `regexExplain.explain`, and a `PanelFollower`.
-- `hover.ts`: `RegexHoverProvider` checks `hoverEnabled`, explains the target, and appends a trusted
-  `$(open-preview)` command link that opens the panel with the same pattern. It also passes the
-  target to `ExplanationPanel.follow`, so an open panel shows the hovered regex.
+- `hover.ts`: `RegexHoverProvider` checks `hoverEnabled`, explains the target, and puts a trusted
+  `$(open-preview)` command link that opens the panel with the same pattern above the explanation.
+  When `panelFollow` is on, it also passes the target to `ExplanationPanel.follow`, so an open panel
+  shows the hovered regex.
 - `follow.ts`: `PanelFollower` listens for selection changes and edits in the active editor, waits
   `FOLLOW_DELAY_MS` for them to settle, and, when `panelFollow` is on, passes the regex at the
   cursor to `ExplanationPanel.follow`. That shows it only when the panel is open and the regex
@@ -227,16 +228,16 @@ share.
 
 ## Dependencies
 
-| Package                     | Used by                            | Why                                                                                                                                                                                             |
-| --------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@eslint-community/regexpp` | Library                            | Maintained ECMAScript regex parser with exact offsets; ESLint's own                                                                                                                             |
-| `regexp-ast-analysis`       | Library                            | Character sets with case folding, group numbers, length ranges on the regexpp AST                                                                                                               |
-| `scslre`                    | Library                            | Detects polynomial and exponential backtracking on the regexpp AST and derives safe rewrites                                                                                                    |
-| `shiki`                     | Extension                          | TextMate-grammar syntax highlighting with VS Code's own themes; the panel loads only the `regexp` grammar (12 KB) and the Light+ and Dark+ themes, adding about 200 KB to the bundle            |
-| `mustache`                  | Extension                          | Small, logic-less templates with HTML escaping, loops, conditions, and partials, so the panel markup lives in template files rather than TypeScript strings                                     |
-| `escape-html`               | Extension                          | Escapes Mustache values for HTML content and quoted attributes; the package Express uses, and it leaves `/` and `=` alone, unlike Mustache's built-in escaper                                   |
-| `@vscode-elements/elements` | Extension                          | Lit web components styled with VS Code's theme variables; the maintained successor to the deprecated `@vscode/webview-ui-toolkit`. The panel imports only the table, textarea, and split layout |
-| `@vscode/tree-sitter-wasm`  | Library (optional peer), extension | Typed tree-sitter runtime and prebuilt grammars from the VS Code team, ABI-matched; WASM, so one VSIX works on every platform                                                                   |
+| Package                     | Used by                            | Why                                                                                                                                                                                                       |
+| --------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@eslint-community/regexpp` | Library                            | Maintained ECMAScript regex parser with exact offsets; ESLint's own                                                                                                                                       |
+| `regexp-ast-analysis`       | Library                            | Character sets with case folding, group numbers, length ranges on the regexpp AST                                                                                                                         |
+| `scslre`                    | Library                            | Detects polynomial and exponential backtracking on the regexpp AST and derives safe rewrites                                                                                                              |
+| `shiki`                     | Extension                          | TextMate-grammar syntax highlighting with VS Code's own themes; the panel loads only the `regexp` grammar (9 KB) and the Light+ and Dark+ themes, adding about 170 KB to the bundle                       |
+| `mustache`                  | Extension                          | Small, logic-less templates with HTML escaping, loops, conditions, and partials, so the panel markup lives in template files rather than TypeScript strings                                               |
+| `escape-html`               | Extension                          | Escapes Mustache values for HTML content and quoted attributes; the package Express uses, and it leaves `/` and `=` alone, unlike Mustache's built-in escaper                                             |
+| `@vscode-elements/elements` | Extension                          | Lit web components styled with VS Code's theme variables; the maintained successor to the deprecated `@vscode/webview-ui-toolkit`. The panel imports only the table, checkbox, textarea, and split layout |
+| `@vscode/tree-sitter-wasm`  | Library (optional peer), extension | Typed tree-sitter runtime and prebuilt grammars from the VS Code team, ABI-matched; WASM, so one VSIX works on every platform                                                                             |
 
 `regexp-ast-analysis` and `scslre` depend on `refa`, which is about 1 MB of the 1.5 MB extension
 bundle (mostly Unicode case-folding data) and loads in roughly 25 ms. They are maintained alongside
