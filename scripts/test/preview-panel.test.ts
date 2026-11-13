@@ -3,7 +3,14 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs
 import { afterEach, beforeEach, describe, it } from "mocha";
 import { tmpdir } from "os";
 import * as path from "path";
-import { allowEvents, parseArgs, renderPreview, startServer, themeCss } from "../preview-panel";
+import {
+  allowEvents,
+  parseArgs,
+  renderPreview,
+  startServer,
+  themeCss,
+  WEBVIEW_DIR,
+} from "../preview-panel";
 
 describe("parseArgs", () => {
   it("should default to the dark theme and a temporary directory", () => {
@@ -52,13 +59,19 @@ describe("parseArgs", () => {
 });
 
 describe("themeCss", () => {
-  it("should declare the variables the stylesheet uses", () => {
-    // Act
-    const css = themeCss("light");
+  (["dark", "light"] as const).forEach((theme) => {
+    it(`should declare every theme variable the stylesheet uses in the ${theme} theme`, () => {
+      // Arrange
+      const stylesheet = readFileSync(path.join(WEBVIEW_DIR, "panel.css"), "utf8");
+      const used = [...new Set(stylesheet.match(/--vscode-[\w-]+/g))];
 
-    // Assert
-    expect(css).to.contain(":root {");
-    expect(css).to.contain("--vscode-editor-background: #ffffff;");
+      // Act
+      const css = themeCss(theme);
+
+      // Assert
+      expect(css).to.contain(":root {");
+      expect(used.filter((name) => !css.includes(`${name}: `))).to.deep.equal([]);
+    });
   });
 });
 
