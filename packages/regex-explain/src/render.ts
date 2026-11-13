@@ -145,7 +145,7 @@ export class ExplanationRenderer {
   }
 
   /**
-   * Renders the explanation as a Markdown table with a Code Point and an Explanation column. Nested
+   * Renders the explanation as a Markdown table with a Pattern and an Explanation column. Nested
    * steps are indented with non-breaking spaces.
    *
    * @param options Rendering options.
@@ -154,8 +154,8 @@ export class ExplanationRenderer {
    */
   markdownTable(options: RenderOptions = {}): string {
     return this.markdown(options, (rows) => [
-      "| Code Point | Explanation |",
-      "| ---------- | ----------- |",
+      "| Pattern | Explanation |",
+      "| ------- | ----------- |",
       ...rows.map(
         (row) =>
           `| ${"&nbsp;&nbsp;".repeat(row.depth)}${escapePipes(code(row.raw))} | ${escapePipes(row.description)} |`

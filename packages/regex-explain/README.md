@@ -40,8 +40,8 @@ Matches exactly 8 characters.
 
 <!-- prettier-ignore -->
 ```md
-| Code Point | Explanation |
-| ---------- | ----------- |
+| Pattern | Explanation |
+| ------- | ----------- |
 | `^` | Assert position is at the start of the input |
 | `\d{3}` | Match a digit (0-9), exactly 3 times |
 | `-` | Match the character `-` |
@@ -102,8 +102,8 @@ type guard that tells whether an untyped value, such as a command argument, has 
 `new ExplanationRenderer(result)` renders an `ExplainResult` in several formats:
 
 - `markdownList(options?)`: a nested Markdown list, as in hovers.
-- `markdownTable(options?)`: a Markdown table with Code Point and Explanation columns. Nested steps
-  are indented with `&nbsp;`.
+- `markdownTable(options?)`: a Markdown table with Pattern and Explanation columns. Nested steps are
+  indented with `&nbsp;`.
 - `text(options?)`: aligned plain text, with code spans shown in double quotes.
 - `model()`: everything a view shows, as an `ExplanationModel`, which the other formats render from:
   the regex as a `literal` (`/pattern/flags`), the `error` (`ErrorModel`: the `message` reason such
