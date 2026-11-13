@@ -51,7 +51,7 @@
     "compile": "npm run clean && npm run build:lib && tsc -b && npm run bundle --prefix packages/vscode-regex-explain",
     "watch": "tsc -b -w",
     "check": "tsx scripts/dev.ts check",
-    "lint": "eslint",
+    "lint": "eslint --max-warnings 0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "ops": "tsx scripts/ops.ts",
