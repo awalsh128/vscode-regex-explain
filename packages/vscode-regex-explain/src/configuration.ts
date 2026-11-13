@@ -16,7 +16,7 @@ export interface RegexExplainConfiguration {
   readonly hoverLanguages: readonly string[];
   /** `regexExplain.checkBacktracking`: warn about catastrophic backtracking. */
   readonly checkBacktracking: boolean;
-  /** `regexExplain.panel.follow`: show the regex at the cursor or under the pointer in the panel. */
+  /** `regexExplain.panel.follow`: show the regex at the cursor or pointer in the panel. */
   readonly panelFollow: boolean;
 }
 
