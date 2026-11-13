@@ -77,6 +77,20 @@ describe("findMatches", () => {
   });
 
   [
+    { name: "one text", entries: false },
+    { name: "entries", entries: true },
+  ].forEach(({ name, entries }) => {
+    it(`should not say ${name} stopped at the limit when it found exactly that many`, () => {
+      // Act
+      const response = findMatches({ pattern: "a", flags: "", text: "a\na", limit: 2, entries });
+
+      // Assert
+      expect(response.matches).to.have.length(2);
+      expect(response.truncated).to.equal(false);
+    });
+  });
+
+  [
     { flags: "", expected: 2 },
     { flags: "g", expected: 2 },
     { flags: "i", expected: 3 },
