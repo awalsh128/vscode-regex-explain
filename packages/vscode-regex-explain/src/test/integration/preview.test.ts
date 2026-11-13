@@ -1,16 +1,20 @@
 import { expect } from "chai";
 import { afterEach, describe, it } from "mocha";
 import * as path from "path";
+import { RegexFinder, RegexSource } from "regex-explain";
+import * as sinon from "sinon";
 import * as vscode from "vscode";
-import { RegexMatcher } from "../../matcher";
-import { EXPLAIN_COMMAND } from "../../preview";
+import { EXPLAIN_COMMAND, ExplainCommandHandler } from "../../preview";
+import { RegexLocator } from "../../targets";
 import { ExplanationPanel, VIEW_TYPE } from "../../webview/host";
-import { PanelTemplate } from "../../webview/panel";
 import { EXTENSION_DIR } from "./paths";
-import { activateExtension, waitFor } from "./testing";
+import { activateExtension, openEditor, waitFor } from "./testing";
 
 /** A regex whose matches are easy to recognize. */
 const INPUT = { pattern: "a+", flags: "g" };
+
+/** Source with one literal, `/b+/i`, at offsets 11 to 16. */
+const SOURCE = "const re = /b+/i;";
 
 /**
  * Lists the open explanation panels' tabs.
@@ -25,72 +29,20 @@ function panelTabs(): vscode.Tab[] {
 }
 
 /**
- * Creates a panel that runs regexes with the bundled worker, as the extension does.
+ * Creates a handler that finds regexes as the extension does and records what it would show.
  *
- * @returns The panel.
+ * @returns The handler and the regexes passed to the panel.
  */
-function newPanel(): ExplanationPanel {
-  return new ExplanationPanel(
-    vscode.Uri.file(EXTENSION_DIR),
-    new RegexMatcher(path.join(EXTENSION_DIR, "dist", "matchWorker.js")),
-    new PanelTemplate(path.join(EXTENSION_DIR, "dist"))
-  );
+function newHandler(): { handler: ExplainCommandHandler; shown: RegexSource[] } {
+  const shown: RegexSource[] = [];
+  const panel = { show: (input: RegexSource) => shown.push(input) } as unknown as ExplanationPanel;
+  const locator = new RegexLocator(new RegexFinder(path.join(EXTENSION_DIR, "dist")));
+  return { handler: new ExplainCommandHandler(locator, panel), shown };
 }
-
-describe("ExplanationPanel", () => {
-  afterEach(async () => {
-    await vscode.commands.executeCommand("workbench.action.closeAllEditors");
-  });
-
-  it("should answer a match request with the matches of the shown regex", async () => {
-    // Arrange
-    const panel = newPanel();
-    panel.show(INPUT);
-
-    // Act
-    const reply = await panel.respond({ type: "match", id: 7, text: "baaa\na", entries: false });
-    panel.dispose();
-
-    // Assert
-    expect(reply?.id).to.equal(7);
-    expect(reply?.model.matches.map((m) => [m.text, m.lines])).to.deep.equal([
-      ["aaa", "L1"],
-      ["a", "L2"],
-    ]);
-  });
-
-  [
-    { name: "an unknown message", message: { type: "other" } },
-    { name: "a malformed match request", message: { type: "match", id: "1" } },
-  ].forEach(({ name, message }) => {
-    it(`should not answer ${name}`, async () => {
-      // Arrange
-      const panel = newPanel();
-      panel.show(INPUT);
-
-      // Act
-      const reply = await panel.respond(message);
-      panel.dispose();
-
-      // Assert
-      expect(reply).to.equal(undefined);
-    });
-  });
-
-  it("should not answer before a regex is shown", async () => {
-    // Arrange
-    const panel = newPanel();
-
-    // Act
-    const reply = await panel.respond({ type: "match", id: 1, text: "a", entries: false });
-
-    // Assert
-    expect(reply).to.equal(undefined);
-  });
-});
 
 describe("ExplainCommandHandler", () => {
   afterEach(async () => {
+    sinon.restore();
     await vscode.commands.executeCommand("workbench.action.closeAllEditors");
   });
 
@@ -117,5 +69,91 @@ describe("ExplainCommandHandler", () => {
 
     // Assert
     expect(panelTabs()).to.have.length(1);
+  });
+
+  [
+    {
+      name: "the selection",
+      selection: new vscode.Selection(0, 0, 0, 5),
+      arg: undefined,
+      expected: { pattern: "const", flags: "" },
+    },
+    {
+      name: "the regex at the cursor",
+      selection: new vscode.Selection(0, 13, 0, 13),
+      arg: undefined,
+      expected: { pattern: "b+", flags: "i" },
+    },
+    {
+      name: "the regex at the cursor, ignoring a menu's URI",
+      selection: new vscode.Selection(0, 13, 0, 13),
+      arg: vscode.Uri.file("menu"),
+      expected: { pattern: "b+", flags: "i" },
+    },
+    {
+      name: "a hover button's regex, not the one at the cursor",
+      selection: new vscode.Selection(0, 13, 0, 13),
+      arg: INPUT,
+      expected: INPUT,
+    },
+  ].forEach(({ name, selection, arg, expected }) => {
+    it(`should explain ${name}`, async () => {
+      // Arrange
+      const editor = await openEditor(SOURCE, "typescript");
+      editor.selection = selection;
+      const prompt = sinon.stub(vscode.window, "showInputBox");
+      const { handler, shown } = newHandler();
+
+      // Act
+      await handler.execute(arg);
+
+      // Assert
+      expect(shown).to.deep.equal([expected]);
+      expect(prompt.called).to.equal(false);
+    });
+  });
+
+  [
+    { name: "explain a typed pattern", typed: "a|b", expected: [{ pattern: "a|b", flags: "" }] },
+    {
+      name: "explain a typed literal",
+      typed: "/ab+c/gi",
+      expected: [{ pattern: "ab+c", flags: "gi" }],
+    },
+    { name: "explain nothing if the prompt is cancelled", typed: undefined, expected: [] },
+  ].forEach(({ name, typed, expected }) => {
+    it(`should ${name} when no regex is at the cursor`, async () => {
+      // Arrange
+      await openEditor("plain words", "plaintext");
+      sinon.stub(vscode.window, "showInputBox").resolves(typed);
+      const { handler, shown } = newHandler();
+
+      // Act
+      await handler.execute();
+
+      // Assert
+      expect(shown).to.deep.equal(expected);
+    });
+  });
+
+  [
+    { typed: "/ab+c/gi", expected: undefined },
+    { typed: "a(", expected: "Invalid regular expression: /a(/: Unterminated group" },
+    { typed: "/a/x", expected: "Invalid regular expression: Invalid flag 'x'" },
+  ].forEach(({ typed, expected }) => {
+    it(`should validate ${typed} as it is typed`, async () => {
+      // Arrange
+      await openEditor("plain words", "plaintext");
+      const prompt = sinon.stub(vscode.window, "showInputBox").resolves(undefined);
+      const { handler } = newHandler();
+      await handler.execute();
+      const validate = prompt.firstCall.args[0]?.validateInput;
+
+      // Act
+      const message = await validate?.(typed);
+
+      // Assert
+      expect(message).to.equal(expected);
+    });
   });
 });
