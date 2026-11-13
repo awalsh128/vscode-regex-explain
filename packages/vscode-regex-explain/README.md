@@ -91,8 +91,12 @@ The command explains the selection, else the regex at the cursor, else a pattern
 
 ### Explanation Panel
 
-The panel shows the explanation as a Pattern and Explanation table, with the regex syntax
-highlighted in Light+ or Dark+ colors to match a light or dark theme, then an **Input** pane and a
+The panel draws the regex as a state machine: states joined by arrows, one per step, colored by kind
+(literal text, character sets, assertions, backreferences, repeats, and groups). Alternatives fork
+onto separate rows, repeats loop back with their count (such as `×1+`), optional parts have a dashed
+bypass, and capture groups are boxed. Hover or focus a step to see its explanation. The full
+explanation is under **Steps**, as a Pattern and Explanation table with the regex syntax highlighted
+in Light+ or Dark+ colors to match a light or dark theme. Below it are an **Input** pane and a
 **Match results** table that lists each match with its lines (such as `L3` or `L3–5`) and capture
 groups. Click a match to select it.
 

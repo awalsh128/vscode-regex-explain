@@ -218,15 +218,10 @@ export function explainRegex(
   flags = "",
   options: ExplainOptions = {}
 ): ExplainResult {
-  const parser = new RegExpParser({ ecmaVersion: 2025 });
   let flagsAst: AST.Flags;
   let patternAst: AST.Pattern;
   try {
-    flagsAst = parser.parseFlags(flags);
-    patternAst = parser.parsePattern(pattern, 0, pattern.length, {
-      unicode: flagsAst.unicode,
-      unicodeSets: flagsAst.unicodeSets,
-    });
+    ({ flags: flagsAst, pattern: patternAst } = parseRegex({ pattern, flags }));
   } catch (error: unknown) {
     return {
       ok: false,
@@ -250,6 +245,25 @@ export function explainRegex(
       options.checkBacktracking === false ? [] : findBacktracking(patternAst, flagsAst, pattern),
     multiline: flagsAst.multiline || enablesMultiline(patternAst),
   };
+}
+
+/**
+ * Parses a regex with the ECMAScript version the library supports.
+ *
+ * @param source The regex.
+ *
+ * @returns The pattern's and flags' syntax trees.
+ *
+ * @throws {RegExpSyntaxError} If the pattern or flags are invalid.
+ */
+export function parseRegex(source: RegexSource): { pattern: AST.Pattern; flags: AST.Flags } {
+  const parser = new RegExpParser({ ecmaVersion: 2025 });
+  const flags = parser.parseFlags(source.flags);
+  const pattern = parser.parsePattern(source.pattern, 0, source.pattern.length, {
+    unicode: flags.unicode,
+    unicodeSets: flags.unicodeSets,
+  });
+  return { pattern, flags };
 }
 
 /**

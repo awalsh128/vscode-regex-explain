@@ -29,22 +29,84 @@
         <code class="regex">/{{{patternHtml}}}/{{flags}}</code>{{/fixLiteral}}
       </div>
       {{/warnings}}
-      <vscode-table class="steps" zebra bordered-columns resizable responsive breakpoint="400"
-        columns='["35%", "65%"]'>
-        <vscode-table-header slot="header">
-          <vscode-table-header-cell>Pattern</vscode-table-header-cell>
-          <vscode-table-header-cell>Explanation</vscode-table-header-cell>
-        </vscode-table-header>
-        <vscode-table-body slot="body">
-          {{#rows}}
-          <vscode-table-row>
-            <vscode-table-cell><code class="regex" style="margin-left: {{indent}}em">{{{highlightedCode}}}</code></vscode-table-cell>
-            <vscode-table-cell>{{> parts}}</vscode-table-cell>
-          </vscode-table-row>
-          {{/rows}}
-        </vscode-table-body>
-      </vscode-table>
+      {{#diagram}}
+      <div class="machine">
+        <svg class="machine-svg" width="{{width}}" height="{{height}}" viewBox="0 0 {{width}} {{height}}"
+          role="group" aria-label="State machine of the regex; focus a step for its explanation">
+          <defs>
+            <marker id="arrow-literal" class="arrow literal" viewBox="0 0 8 8" refX="7" refY="4" markerUnits="userSpaceOnUse" markerWidth="8"
+              markerHeight="8" orient="auto"><path d="M0 0L8 4L0 8z" /></marker>
+            <marker id="arrow-set" class="arrow set" viewBox="0 0 8 8" refX="7" refY="4" markerUnits="userSpaceOnUse" markerWidth="8"
+              markerHeight="8" orient="auto"><path d="M0 0L8 4L0 8z" /></marker>
+            <marker id="arrow-assertion" class="arrow assertion" viewBox="0 0 8 8" refX="7" refY="4" markerUnits="userSpaceOnUse" markerWidth="8"
+              markerHeight="8" orient="auto"><path d="M0 0L8 4L0 8z" /></marker>
+            <marker id="arrow-backreference" class="arrow backreference" viewBox="0 0 8 8" refX="7" refY="4" markerUnits="userSpaceOnUse" markerWidth="8"
+              markerHeight="8" orient="auto"><path d="M0 0L8 4L0 8z" /></marker>
+            <marker id="arrow-empty" class="arrow empty" viewBox="0 0 8 8" refX="7" refY="4" markerUnits="userSpaceOnUse" markerWidth="8"
+              markerHeight="8" orient="auto"><path d="M0 0L8 4L0 8z" /></marker>
+            <marker id="arrow-loop" class="arrow loop" viewBox="0 0 8 8" refX="7" refY="4" markerUnits="userSpaceOnUse" markerWidth="8"
+              markerHeight="8" orient="auto"><path d="M0 0L8 4L0 8z" /></marker>
+          </defs>
+          {{#boxes}}
+          <g class="box" tabindex="0" role="img" aria-label="Group {{label}}" aria-describedby="{{id}}">
+            <rect x="{{x}}" y="{{y}}" width="{{width}}" height="{{height}}" rx="4" />
+            <text x="{{labelX}}" y="{{labelY}}">{{label}}</text>
+          </g>
+          {{/boxes}}
+          {{#lines}}
+          <path class="line{{#dashed}} dashed{{/dashed}}" d="{{d}}"{{#dashed}} marker-end="url(#arrow-empty)"{{/dashed}} />
+          {{/lines}}
+          {{#loops}}
+          <g class="loop" tabindex="0" role="img" aria-label="Repeat {{label}}" aria-describedby="{{id}}">
+            <path class="hit" d="{{d}}" />
+            <path class="stroke" d="{{d}}" marker-end="url(#arrow-loop)" />
+            <text x="{{labelX}}" y="{{labelY}}">{{label}}</text>
+          </g>
+          {{/loops}}
+          {{#transitions}}
+          <g class="transition {{kind}}" tabindex="0" role="img" aria-label="{{label}}" aria-describedby="{{id}}">
+            <path class="hit" d="{{d}}" />
+            <path class="stroke" d="{{d}}" marker-end="url(#arrow-{{kind}})" />
+            <text x="{{labelX}}" y="{{labelY}}">{{label}}</text>
+          </g>
+          {{/transitions}}
+          {{#states}}
+          <circle class="state{{#start}} start{{/start}}" cx="{{cx}}" cy="{{cy}}" r="6" />
+          {{#accept}}<circle class="state-inner" cx="{{cx}}" cy="{{cy}}" r="3" />{{/accept}}
+          {{/states}}
+        </svg>
+      </div>
+      <ul class="legend" aria-label="Legend">
+        <li class="literal">Literal</li>
+        <li class="set">Character set</li>
+        <li class="assertion">Assertion</li>
+        <li class="backreference">Backreference</li>
+        <li class="loop">Repeat</li>
+        <li class="group">Group</li>
+      </ul>
+      {{#tips}}
+      <div class="tip" id="{{id}}" role="tooltip" hidden>{{> parts}}</div>
+      {{/tips}}
+      {{/diagram}}
       <p class="length"><em>{{length}}</em></p>
+      <details class="steps-details">
+        <summary>Steps ({{rows.length}})</summary>
+        <vscode-table class="steps" zebra bordered-columns resizable responsive breakpoint="400"
+          columns='["35%", "65%"]'>
+          <vscode-table-header slot="header">
+            <vscode-table-header-cell>Pattern</vscode-table-header-cell>
+            <vscode-table-header-cell>Explanation</vscode-table-header-cell>
+          </vscode-table-header>
+          <vscode-table-body slot="body">
+            {{#rows}}
+            <vscode-table-row>
+              <vscode-table-cell><code class="regex" style="margin-left: {{indent}}em">{{{highlightedCode}}}</code></vscode-table-cell>
+              <vscode-table-cell>{{> parts}}</vscode-table-cell>
+            </vscode-table-row>
+            {{/rows}}
+          </vscode-table-body>
+        </vscode-table>
+      </details>
       {{#hasFlags}}
       <h2>Flags</h2>
       <ul class="flags">

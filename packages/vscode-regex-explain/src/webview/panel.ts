@@ -1,9 +1,9 @@
 /**
  * Renders the explanation panel's page from the Mustache templates in `src/webview/`, which the
  * bundle copies to `dist/`: `panel.html` for the page and `parts.html` for description text. This
- * module only shapes the library's `ExplanationModel` into the templates' view, with regexes
- * highlighted by `highlight.ts`. It does not import `vscode`, so that it can be tested in Node; the
- * panel passes in the webview URIs.
+ * module only shapes the library's `ExplanationModel` and state machine into the templates' view,
+ * with regexes highlighted by `highlight.ts` and the machine laid out by `diagram.ts`. It does not
+ * import `vscode`, so that it can be tested in Node; the panel passes in the webview URIs.
  */
 import escapeHtml from "escape-html";
 import * as fs from "fs";
@@ -15,7 +15,9 @@ import {
   parseRegexInput,
   regex101Url,
   RegexSource,
+  stateMachine,
 } from "regex-explain";
+import { layoutMachine } from "./diagram";
 import { highlight } from "./highlight";
 
 /** Webview-specific values the page needs. */
@@ -86,6 +88,7 @@ export class PanelTemplate {
         indent: row.depth * INDENT_EM,
       })),
       hasFlags: model.flags.length > 0,
+      diagram: result.ok ? layoutMachine(stateMachine(result)) : undefined,
     };
     // Mustache passes numbers, such as the indent, to the escape function as they are.
     return Mustache.render(this.page, view, this.partials, {

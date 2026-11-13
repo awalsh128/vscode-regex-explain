@@ -37,6 +37,16 @@ export type {
 export { describeMatches, findMatches } from "./matches";
 export { regex101Url } from "./extlinks";
 export type {
+  MachineChoice,
+  MachineGroup,
+  MachinePart,
+  MachineRepeat,
+  MachineSequence,
+  MachineTransition,
+  TransitionKind,
+} from "./machine";
+export { stateMachine } from "./machine";
+export type {
   ErrorModel,
   ExplanationModel,
   ExplanationRow,
