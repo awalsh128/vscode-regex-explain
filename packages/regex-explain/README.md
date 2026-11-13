@@ -257,7 +257,8 @@ replaced by `new ExplanationRenderer(result).markdownList(options)`, `.text(opti
 
 Patterns follow **JavaScript** semantics up to ES2025: named and duplicate named groups, lookbehind,
 Unicode property escapes, the `v` flag's set operations and `\q{...}`, and inline modifiers such as
-`(?i:...)`. Constructs specific to other engines are reported as syntax errors.
+`(?i:...)`. Most constructs specific to other engines are reported as syntax errors, but without the
+`u` or `v` flag an escape JavaScript lacks, such as `\A` or `\z`, is explained as the plain letter.
 
 The backtracking check omits patterns that are slow only because the engine retries them at every
 input position (for example `/a+b/`); those are too common to be useful as warnings. Fixes are not
