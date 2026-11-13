@@ -154,8 +154,9 @@ extension README's language table and settings default.
 ### `strings.ts`
 
 `decodeEscape` decodes one escape the grammar marked, preferring the language's own `escapes`;
-`splitDelimitedPattern` reads PHP's `/pattern/flags`; `translateFlags` maps flags to JavaScript's.
-These are internal.
+`singleQuotedValue` reads strings whose grammar marks no escapes, such as Ruby's `'...'`, where only
+`\\` and an escaped delimiter lose their backslash; `splitDelimitedPattern` reads PHP's
+`/pattern/flags`; `translateFlags` maps flags to JavaScript's. These are internal.
 
 ### `matches.ts`
 

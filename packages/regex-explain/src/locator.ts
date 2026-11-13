@@ -10,7 +10,7 @@
 import type { Language, Node, Parser, Query, QueryCapture, Range } from "@vscode/tree-sitter-wasm";
 import { LANGUAGES, LanguageSpec } from "./compiler";
 import type { RegexSource } from "./explainer";
-import { decodeEscape, splitDelimitedPattern, translateFlags } from "./strings";
+import { decodeEscape, singleQuotedValue, splitDelimitedPattern, translateFlags } from "./strings";
 
 /**
  * A regex found in source text. The pattern has the source language's string escapes decoded, and
@@ -296,6 +296,9 @@ function literalParts(node: Node, source: string): RegexSource | undefined {
  *   decoded.
  */
 function stringValue(node: Node, source: string, spec: LanguageSpec): string | undefined {
+  if (spec.singleQuoted?.test(node.text)) {
+    return singleQuotedValue(node.text);
+  }
   if (node.childCount === 0) {
     return verbatimValue(node.text);
   }

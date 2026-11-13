@@ -66,6 +66,25 @@ export function decodeEscape(
 }
 
 /**
+ * Computes the value of a string literal whose only escapes are a backslash before another
+ * backslash or before a delimiter, such as Ruby's `'...'` and `%q(...)`. Other backslashes stay.
+ *
+ * @param text The literal's source text, such as `'a\\b'` or `%q(a\))`.
+ *
+ * @returns The value, or undefined if the text is not delimited.
+ */
+export function singleQuotedValue(text: string): string | undefined {
+  const quoted = /^(?:%q)?([\s\S])([\s\S]*)([\s\S])$/.exec(text);
+  if (!quoted) {
+    return undefined;
+  }
+  const [, open, content, close] = quoted;
+  return content.replace(/\\([\s\S])/g, (escape, char: string) =>
+    char === "\\" || char === open || char === close ? char : escape
+  );
+}
+
+/**
  * Splits a PCRE-style pattern such as PHP's `'/a+/i'` into its pattern and flags.
  *
  * @param value The string's value. Its first character is the delimiter; brackets close with their
