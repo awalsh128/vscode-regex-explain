@@ -33,7 +33,7 @@ export interface PanelResources {
 /** The panel's title, on its tab and as the page heading. */
 export const PANEL_TITLE = "Regex Explanation";
 
-/** Indentation per nesting level of the Code Point column, in `em`. */
+/** Indentation per nesting level of the Pattern column, in `em`. */
 const INDENT_EM = 1.25;
 
 /** Renders explanation pages from the panel templates. */

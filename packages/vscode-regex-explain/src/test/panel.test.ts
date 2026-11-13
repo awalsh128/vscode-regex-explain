@@ -33,6 +33,17 @@ describe("PanelTemplate", () => {
     expect(html).to.include('<link rel="stylesheet" href="https://webview.test/dist/panel.css">');
   });
 
+  it("should head the steps table with Pattern and Explanation columns", () => {
+    // Act
+    const html = TEMPLATE.render(explainRegex("a", "", NO_BACKTRACKING), RESOURCES);
+
+    // Assert
+    const headings = [...html.matchAll(/<vscode-table-header-cell>(.*?)</g)].map(
+      ([, text]) => text
+    );
+    expect(headings).to.deep.equal(["Pattern", "Explanation"]);
+  });
+
   it("should render each step as a highlighted table row indented by depth", () => {
     // Act
     const html = TEMPLATE.render(explainRegex("(ab)+", "", NO_BACKTRACKING), RESOURCES);

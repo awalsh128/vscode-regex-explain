@@ -91,7 +91,7 @@ The command explains the selection, else the regex at the cursor, else a pattern
 
 ### Explanation Panel
 
-The panel shows the explanation as a Code Point and Explanation table, with the regex syntax
+The panel shows the explanation as a Pattern and Explanation table, with the regex syntax
 highlighted in Light+ or Dark+ colors to match a light or dark theme, then an **Input** pane and a
 **Match results** table that lists each match with its lines (such as `L3` or `L3–5`) and capture
 groups. Click a match to select it.
