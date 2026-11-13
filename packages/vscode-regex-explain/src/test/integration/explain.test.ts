@@ -4,7 +4,7 @@ import * as path from "path";
 import { RegexFinder, RegexSource } from "regex-explain";
 import * as sinon from "sinon";
 import * as vscode from "vscode";
-import { EXPLAIN_COMMAND, ExplainCommandHandler } from "../../preview";
+import { EXPLAIN_COMMAND, ExplainCommandHandler } from "../../explain";
 import { RegexLocator } from "../../targets";
 import { ExplanationPanel, VIEW_TYPE } from "../../webview/host";
 import { EXTENSION_DIR } from "./paths";

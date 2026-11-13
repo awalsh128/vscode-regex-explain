@@ -5,7 +5,7 @@
 import { explainRegex, ExplanationRenderer } from "regex-explain";
 import * as vscode from "vscode";
 import { getConfig } from "./configuration";
-import { EXPLAIN_COMMAND } from "./preview";
+import { EXPLAIN_COMMAND } from "./explain";
 import { RegexLocator } from "./targets";
 import { ExplanationPanel } from "./webview/host";
 
