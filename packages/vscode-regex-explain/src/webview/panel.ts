@@ -70,13 +70,13 @@ export class PanelTemplate {
     const view = {
       ...resources,
       ...model,
-      literalHtml: literalHtml(result),
+      literal: literalView(result),
       // The page updates the link with the input text as the user types.
       regex101Url: regex101Url(result),
       error,
       warnings: model.warnings.map((warning) => {
         const fix = warning.fix === undefined ? undefined : parseRegexInput(warning.fix);
-        return { ...warning, fixHtml: fix && literalHtml(fix) };
+        return { ...warning, fixLiteral: fix && literalView(fix) };
       }),
       rows: model.rows.map((row) => ({
         ...row,
@@ -93,12 +93,12 @@ export class PanelTemplate {
 }
 
 /**
- * Renders a regex as a literal with its pattern highlighted.
+ * Shapes a regex for the template, which writes it as a literal.
  *
  * @param source The regex.
  *
- * @returns HTML for `/pattern/flags`, with the slashes and flags as plain text.
+ * @returns The pattern as highlighted HTML, and the flags.
  */
-function literalHtml(source: RegexSource): string {
-  return `/${highlight(source.pattern)}/${escapeHtml(source.flags)}`;
+function literalView(source: RegexSource): { patternHtml: string; flags: string } {
+  return { patternHtml: highlight(source.pattern), flags: source.flags };
 }
