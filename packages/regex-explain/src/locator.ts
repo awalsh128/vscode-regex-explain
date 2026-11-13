@@ -50,8 +50,8 @@ const SCRIPT_BLOCK = /<script\b[^>]*>([\s\S]*?)<\/script\s*>/gi;
 type TreeSitter = typeof import("@vscode/tree-sitter-wasm");
 
 /**
- * Loads and initializes the tree-sitter runtime once per process, from the first finder's
- * directory.
+ * Loads and initializes the tree-sitter runtime once per process, from the directory of the first
+ * finder to load it successfully.
  */
 let runtime: Promise<TreeSitter> | undefined;
 
@@ -193,12 +193,16 @@ export class RegexFinder {
   }
 
   /**
-   * Loads the tree-sitter runtime, once per process.
+   * Loads the tree-sitter runtime, once per process. A failed load is not kept, so a later call,
+   * possibly from a finder with a different directory, tries again.
    *
    * @returns The runtime's exports.
    */
   private runtime(): Promise<TreeSitter> {
-    runtime ??= loadRuntime(this.wasmDir);
+    runtime ??= loadRuntime(this.wasmDir).catch((error: unknown) => {
+      runtime = undefined;
+      throw error;
+    });
     return runtime;
   }
 }
