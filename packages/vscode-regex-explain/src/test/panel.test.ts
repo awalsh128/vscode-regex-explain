@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { describe, it } from "mocha";
 import * as path from "path";
 import { explainRegex } from "regex-explain";
-import { PanelResources, PanelTemplate } from "../webview/panel";
+import { PANEL_TITLE, PanelResources, PanelTemplate } from "../webview/panel";
 
 /** The templates in the source tree; the bundle copies them to `dist/`. */
 const TEMPLATE = new PanelTemplate(path.join(__dirname, "..", "..", "src", "webview"));
@@ -74,6 +74,15 @@ describe("PanelTemplate", () => {
 
     // Assert
     expect(html).to.include("</span>/&lt;i&gt;</code>");
+  });
+
+  it("should head the page with the panel's title", () => {
+    // Act
+    const html = TEMPLATE.render(explainRegex("a", "", NO_BACKTRACKING), RESOURCES);
+
+    // Assert
+    expect(html).to.include(`<title>${PANEL_TITLE}</title>`);
+    expect(html).to.include(`<h1 id="explanation-heading">${PANEL_TITLE}</h1>`);
   });
 
   it("should leave out the flags heading when there are no flags", () => {

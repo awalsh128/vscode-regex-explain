@@ -30,6 +30,9 @@ export interface PanelResources {
   readonly styleUri: string;
 }
 
+/** The panel's title, on its tab and as the page heading. */
+export const PANEL_TITLE = "Regex Explanation";
+
 /** Indentation per nesting level of the Code Point column, in `em`. */
 const INDENT_EM = 1.25;
 
@@ -68,6 +71,7 @@ export class PanelTemplate {
     const view = {
       ...resources,
       ...model,
+      title: PANEL_TITLE,
       literal: literalView(result),
       // The page updates the link with the input text as the user types.
       regex101Url: regex101Url(result),
