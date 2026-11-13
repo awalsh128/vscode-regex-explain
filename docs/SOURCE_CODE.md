@@ -11,7 +11,8 @@
 │  webview/host.ts  ExplanationPanel: opens the panel, answers match requests     │
 │  webview/panel.ts PanelTemplate: ExplanationModel ─> panel.html (Mustache)      │
 │  webview/highlight.ts  highlight(): Shiki regexp tokens in Light+ and Dark+     │
-│  webview/main.ts  panel script (browser): gutter, results, messages             │
+│  webview/main.ts  panel script (browser): wires the page, saves its state       │
+│  webview/results.ts  results table, gutter numbers, match requests (browser)    │
 │  webview/protocol.ts  messages between the webview and the extension            │
 │  matcher.ts      RegexMatcher: findMatches() in a worker thread, timed          │
 │  configuration.ts  getConfig(): the only settings reader                        │
@@ -187,9 +188,10 @@ display: the summary sentence, `L1–2` line labels, and `$1` or named group lab
   rejects.
 
 `src/webview/` holds the explanation panel. `host.ts` and `panel.ts` run in the extension host and
-belong to the extension's TypeScript project; `main.ts` runs in the webview and has its own
-`tsconfig.json` with DOM types, which compiles only it and `protocol.ts`, the messages the two sides
-share.
+belong to the extension's TypeScript project; `main.ts` and `results.ts` run in the webview and have
+their own `tsconfig.json` with DOM types, which compiles only them and `protocol.ts`, the messages
+the two sides share. `webview/test/` holds the tests of `results.ts`, with a `tsconfig.json` that
+adds Node types; `npm run test:unit` runs them with `tsx` in a happy-dom window over `panel.html`.
 
 - `webview/host.ts`: `ExplanationPanel` keeps one webview panel beside the editor, reused for each
   regex, and answers the page's match requests with `RegexMatcher`, up to `MATCH_LIMIT` matches. A
@@ -215,12 +217,15 @@ share.
 - `webview/panel.html`, `webview/parts.html`, `webview/panel.css`: the page's templates and its
   stylesheet, which uses `--vscode-*` theme variables. They sit beside `webview/main.ts` because the
   script and styles depend on the page's IDs and classes.
-- `webview/main.ts`: runs in the webview. It numbers the gutter from the input's lines and follows
-  the inner textarea's scrolling (through `wrappedElement`, with wrapping off and a fixed line
-  height), debounces match requests, lists results by cloning the page's templates, selects a
-  clicked match, and stacks the panes below 600 px. It keeps the input in `setState`. It has no
-  automated tests; `panel.ts` and `protocol.ts` hold the testable logic, and matching runs in the
-  library's `findMatches`.
+- `webview/main.ts`: runs in the webview and connects the page's elements. It follows the inner
+  textarea's scrolling in the gutter (through `wrappedElement`, with wrapping off and a fixed line
+  height), keeps the input and the entries checkbox in `setState`, and stacks the panes below 600
+  px. It has no automated tests; the logic it calls is in `results.ts`.
+- `webview/results.ts`: `lineNumbers()` numbers the gutter, `MatchRequests` sends a match request
+  once the input stops changing and tells the reply to the last request from stale ones,
+  `showResults()` lists matches or entries by cloning the page's `<template>` elements, and
+  `selectMatch()` selects a clicked match in the input. It works on the elements it is given, so it
+  is tested without VS Code.
 - `webview/protocol.ts`: the webview message types and `isMatchMessage`. It imports only types, so
   both builds include it.
 - `matcher.ts`: `RegexMatcher` runs each request through the library's `findMatches` in a new

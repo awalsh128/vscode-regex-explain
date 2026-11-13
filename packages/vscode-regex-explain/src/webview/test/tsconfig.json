@@ -1,0 +1,22 @@
+{
+  "extends": "../../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["node"],
+    "composite": true,
+    "rootDir": "..",
+    "outDir": "../../../out/webview-test",
+    "tsBuildInfoFile": "../../../out/webview-test/.tsbuildinfo",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "paths": {
+      "regex-explain": ["../../../../regex-explain/src/index.ts"]
+    }
+  },
+  "include": ["*.ts", "../results.ts", "../protocol.ts"],
+  "references": [
+    {
+      "path": "../../../../regex-explain"
+    }
+  ]
+}
