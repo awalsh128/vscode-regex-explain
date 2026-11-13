@@ -68,6 +68,14 @@ describe("PanelTemplate", () => {
     );
   });
 
+  it("should escape markup in the regex's flags", () => {
+    // Act
+    const html = TEMPLATE.render(explainRegex("a", "<i>", NO_BACKTRACKING), RESOURCES);
+
+    // Assert
+    expect(html).to.include("</span>/&lt;i&gt;</code>");
+  });
+
   it("should leave out the flags heading when there are no flags", () => {
     // Act
     const html = TEMPLATE.render(explainRegex("a", "", NO_BACKTRACKING), RESOURCES);

@@ -14,7 +14,7 @@
   <main>
     <section aria-labelledby="explanation-heading">
       <h1 id="explanation-heading">RegEx Explanation</h1>
-      <p class="literal"><code class="regex">{{{literalHtml}}}</code>
+      <p class="literal"><code class="regex">{{#literal}}/{{{patternHtml}}}/{{flags}}{{/literal}}</code>
         <a class="regex101" href="{{regex101Url}}"
           title="Open this regex and the input text in regex101.com">Open in regex101</a></p>
       {{#error}}
@@ -25,8 +25,8 @@
       {{/error}}
       {{^error}}
       {{#warnings}}
-      <div class="warning" role="note"><strong>Warning:</strong> {{> parts}}.{{#fixHtml}} Equivalent safe pattern:
-        <code class="regex">{{{fixHtml}}}</code>{{/fixHtml}}
+      <div class="warning" role="note"><strong>Warning:</strong> {{> parts}}.{{#fixLiteral}} Equivalent safe pattern:
+        <code class="regex">/{{{patternHtml}}}/{{flags}}</code>{{/fixLiteral}}
       </div>
       {{/warnings}}
       <vscode-table class="steps" zebra bordered-columns resizable responsive breakpoint="400"
