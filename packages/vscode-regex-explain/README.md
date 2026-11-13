@@ -2,7 +2,7 @@
   <img src="images/logo.png" alt="Regex Explain logo" width="128" height="128">
 </p>
 
-<h1 align="center">Regex Explain</h1>
+<h1 align="center">Regex Explain Lab</h1>
 
 <p align="center">
   Explain regular expressions in plain English, step by step, and catch patterns that can
@@ -81,7 +81,7 @@ then hover the selection. Hovering `/^(?<user>[\w.+-]+)@([a-z\d-]+\.)+[a-z]{2,}$
 
 Open the explanation panel beside the editor using any of:
 
-- **Hover**: Click **Open explanation** at the end of a hover.
+- **Hover**: Click **Open explanation** at the top of a hover.
 - **Command Palette**: Run **Regex Explain: Explain Regex** (`regexExplain.explain`).
 - **Context Menu**: Right-click in the editor and choose **Regex Explain: Explain Regex**.
 
@@ -91,8 +91,12 @@ The command explains the selection, else the regex at the cursor, else a pattern
 
 ### Explanation Panel
 
-The panel shows the explanation as a Code Point and Explanation table, with the regex syntax
-highlighted in Light+ or Dark+ colors to match a light or dark theme, then an **Input** pane and a
+The panel draws the regex as a state machine: states joined by arrows, one per step, colored by kind
+(literal text, character sets, assertions, backreferences, repeats, and groups). Alternatives fork
+onto separate rows, repeats loop back with their count (such as `×1+`), optional parts have a dashed
+bypass, and capture groups are boxed. Hover or focus a step to see its explanation. The full
+explanation is under **Steps**, as a Pattern and Explanation table with the regex syntax highlighted
+in Light+ or Dark+ colors to match a light or dark theme. Below it are an **Input** pane and a
 **Match results** table that lists each match with its lines (such as `L3` or `L3–5`) and capture
 groups. Click a match to select it.
 
@@ -148,7 +152,7 @@ regex-like text in comments, other strings, and division is ignored. String esca
 
 | Setting                          | Default                                                                                                                                                            | Description                                                                                           |
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
-| `regexExplain.hover.enabled`     | `true`                                                                                                                                                             | Show explanations on hover.                                                                           |
+| `regexExplain.hover.enabled`     | `true`                                                                                                                                                             | Show explanations on hover, for regexes in code and selections in any file.                           |
 | `regexExplain.hover.languages`   | `javascript`<br>`javascriptreact`<br>`typescript`<br>`typescriptreact`<br>`vue`<br>`svelte`<br>`python`<br>`go`<br>`rust`<br>`java`<br>`csharp`<br>`ruby`<br>`php` | Languages in which regexes in code are found automatically. Only the languages here are supported.    |
 | `regexExplain.checkBacktracking` | `true`                                                                                                                                                             | Warn about patterns that take exponential or polynomial time on some input.                           |
 | `regexExplain.panel.follow`      | `true`                                                                                                                                                             | While the explanation panel is open, show the regex you move the cursor into, select, hover, or edit. |
@@ -168,9 +172,10 @@ Every setting can also be set for one language:
 
 - Patterns are explained with **JavaScript** regex syntax and meaning, whatever the file's language.
   Most syntax is shared, but constructs specific to other engines, such as Python's `(?P<name>...)`,
-  inline flags such as `(?i)`, or possessive quantifiers, are reported as syntax errors. Meaning can
-  differ too: Ruby's `^` and `$` also match at line breaks, but are explained as the start and end
-  of the input.
+  inline flags such as `(?i)`, or possessive quantifiers, are reported as syntax errors. Escapes
+  JavaScript lacks, such as `\A` and `\z`, are explained as the plain letters `A` and `z`. Meaning
+  can differ too: Ruby's `^` and `$` also match at line breaks, but are explained as the start and
+  end of the input.
 - Flags are translated to JavaScript, such as Ruby's `m` to `s`. Flags that do not change what
   matches, such as Ruby's `o` or PHP's `u`, are ignored; others, such as `x`, are reported.
 - Only the calls in the [Supported Languages](#supported-languages) table are recognized, by name:

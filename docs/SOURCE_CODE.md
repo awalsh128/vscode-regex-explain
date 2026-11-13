@@ -5,22 +5,25 @@
 ```
 ┌──────────────────────────── VS Code extension (packages/vscode-regex-explain) ──┐
 │  extension.ts ── registers ──┬─> hover.ts    RegexHoverProvider                 │
-│                              ├─> preview.ts  ExplainCommandHandler              │
+│                              ├─> explain.ts  ExplainCommandHandler              │
 │                              └─> follow.ts   PanelFollower: regex at the cursor │
 │  targets.ts      RegexLocator: selection or regex at a position (cached)        │
 │  webview/host.ts  ExplanationPanel: opens the panel, answers match requests     │
 │  webview/panel.ts PanelTemplate: ExplanationModel ─> panel.html (Mustache)      │
 │  webview/highlight.ts  highlight(): Shiki regexp tokens in Light+ and Dark+     │
-│  webview/main.ts  panel script (browser): gutter, results, messages             │
+│  webview/diagram.ts  layoutMachine(): state machine ─> SVG coordinates          │
+│  webview/main.ts  panel script (browser): wires the page, saves its state       │
+│  webview/results.ts  results table, gutter numbers, match requests (browser)    │
 │  webview/protocol.ts  messages between the webview and the extension            │
 │  matcher.ts      RegexMatcher: findMatches() in a worker thread, timed          │
 │  configuration.ts  getConfig(): the only settings reader                        │
 └──────────────────────────────────────┬──────────────────────────────────────────┘
-                                       │ explainRegex(), ExplanationRenderer, RegexFinder, findMatches
+                                       │ explainRegex(), ExplanationRenderer, stateMachine(), RegexFinder, findMatches
 ┌──────────────────────────── Library (packages/regex-explain) ───────────────────┐
 │  index.ts        public API                                                     │
 │  explainer.ts    regexpp AST ─> ExplanationNode tree, length, warnings          │
 │  render.ts       ExplanationRenderer: Markdown, plain text, or model            │
+│  machine.ts      stateMachine(): regexpp AST ─> transitions, choices, repeats   │
 │  text.ts         wording helpers, code span splitting                           │
 │  locator.ts      RegexFinder: tree-sitter parse + query ─> LocatedRegex[]       │
 │  compiler.ts     LANGUAGES: grammar and query per language ID                   │
@@ -35,16 +38,16 @@
 
 A hover runs: `RegexHoverProvider.provideHover` → `RegexLocator` finds the selection containing the
 position, else the regex under it → `explainRegex` → `ExplanationRenderer.markdownList` →
-`vscode.Hover`, ending with an **Open explanation** command link.
+`vscode.Hover`, starting with an **Open explanation** command link.
 
 The command, or that link, calls `ExplanationPanel.show`, which sets the webview's HTML from
 `PanelTemplate.render`. As the user types or toggles separate entries, the webview script posts
 `{ type: "match", id, text, entries }`; `ExplanationPanel.respond` runs the shown regex through
 `RegexMatcher`, which starts a worker thread for `findMatches` and terminates it after
-`MATCH_TIMEOUT_MS`, and posts back `{ type: "matches", id, model, regex101Url }`, where
-`regex101Url` opens the regex and the text on regex101.com and `model` is the library's
-`describeMatches` of the response and holds the worded summary and matches. The script ignores
-replies to superseded ids.
+`MATCH_TIMEOUT_MS` or when a newer request, or closing the panel, cancels it, and posts back
+`{ type: "matches", id, model, regex101Url }`, where `regex101Url` opens the regex and the text on
+regex101.com and `model` is the library's `describeMatches` of the response and holds the worded
+summary and matches. The script ignores replies to superseded ids.
 
 ## Repository Layout
 
@@ -54,7 +57,7 @@ replies to superseded ids.
                        npm run check, commit-msg runs commitlint
 .github/               Workflows and their composite actions, Octo STS trust policies
                        (chainguard/), issue forms, labels, Copilot instructions and reviewer
-docs/                  This file and the development guidelines
+docs/                  This file, the development guidelines, and agent skill notes (agents/)
 packages/regex-explain/          The npm library (each package keeps a LICENSE copy for its registry
                                  and a release.config.cjs for semantic-release)
 packages/vscode-regex-explain/   The VS Code extension, its test workspace, and its icon
@@ -121,9 +124,19 @@ pattern, and `isRegexSource` is the type guard for untyped `RegexSource` values.
 `ExplanationRenderer` wraps an `ExplainResult`. `model()` is the only place that reads the result:
 it flattens the node tree with depths and pairs each description with its `splitCodeSpans` parts.
 `markdownList`, `markdownTable`, and `text` render from the model in one layout: warnings, then the
-steps, the length sentence, and the flags. A syntax error's model carries the `caret` line that all
-three formats and the panel print under the pattern. Markdown uses the descriptions as they are,
-`text` joins the parts with code in double quotes, and table cells escape `|`.
+steps, the length sentence, and the flags. A syntax error's model carries only the parser's reason,
+since all three formats and the panel add their own label, and the pattern's `line` that holds the
+error with the `caret` under it, which they print, so a long multi-line selection is not repeated
+whole. Markdown uses the descriptions as they are, `text` joins the parts with code in double
+quotes, and table cells escape `|`.
+
+### `machine.ts`
+
+`stateMachine()` parses the pattern again with `parseRegex()`, the parser setup it shares with
+`explainRegex`, and builds a tree of transitions, sequences, choices, repeats, and groups. It merges
+literal runs as `explainSequence` does, so each transition takes its description from the
+explanation node with the same source span; an element without one, such as the `\d` in `\d+`, takes
+its quantifier's.
 
 ### `text.ts`
 
@@ -136,23 +149,27 @@ controls, `U+XXXX` for invisible ones), and `lowerFirst()` and `withArticle()` a
 `RegexFinder` imports `@vscode/tree-sitter-wasm` on first use, so the rest of the library works
 without that optional peer dependency, skips sources over `MAX_SCAN_LENGTH` characters, and loads
 each grammar once from a WASM directory or URL (`dist/` in the extension, the installed package in
-tests). Paths are joined with `/` rather than Node's `path`, so the module also works in bundlers.
-`find` parses the text, runs the language's query, and reads each match by its capture names: regex
-literals keep their source text, string literals are decoded, and strings with interpolations are
-skipped. For `scriptBlocks` languages (Vue, Svelte) only `<script>` blocks are parsed, through
-`includedRanges`. Offsets are UTF-16 code units, as VS Code expects.
+tests). The runtime is shared by every finder in the process; a failed load is not cached, so the
+next `find` tries again. Paths are joined with `/` rather than Node's `path`, so the module also
+works in bundlers. `find` parses the text, runs the language's query, and reads each match by its
+capture names: regex literals keep their source text, string literals are decoded, and strings with
+interpolations are skipped. For `scriptBlocks` languages (Vue, Svelte) only `<script>` blocks are
+parsed, through `includedRanges`. Offsets are UTF-16 code units, as VS Code expects.
 
 ### `compiler.ts`
 
-`LANGUAGES` maps a VS Code language ID to a grammar, a tree-sitter query, and flag translations. The
-module comment defines the capture names. To add a language, add an entry and a case to
-`compiler.test.ts`. The extension's `bundle.mjs` copies the grammar, and `SUPPORTED_LANGUAGE_IDS`
-sets the `hover.languages` default, which must also be added to the manifest's default and `enum`,
-and to the extension README's language table and settings default.
+`LANGUAGES` maps a VS Code language ID to a grammar, a tree-sitter query, flag translations, and
+string escapes that differ from JavaScript's, such as Java's and Ruby's `\s` for a space. The module
+comment defines the capture names. To add a language, add an entry and a case to `compiler.test.ts`.
+The extension's `bundle.mjs` copies the grammar, and `SUPPORTED_LANGUAGE_IDS` sets the
+`hover.languages` default, which must also be added to the manifest's default and `enum`, and to the
+extension README's language table and settings default.
 
 ### `strings.ts`
 
-`decodeEscape` decodes one escape the grammar marked; `splitDelimitedPattern` reads PHP's
+`decodeEscape` decodes one escape the grammar marked, preferring the language's own `escapes`;
+`singleQuotedValue` reads strings whose grammar marks no escapes, such as Ruby's `'...'`, where only
+`\\` and an escaped delimiter lose their backslash; `splitDelimitedPattern` reads PHP's
 `/pattern/flags`; `translateFlags` maps flags to JavaScript's. These are internal.
 
 ### `matches.ts`
@@ -167,35 +184,39 @@ display: the summary sentence, `L1–2` line labels, and `$1` or named group lab
 - `extension.ts`: `activate` creates one `RegexLocator`, one `RegexMatcher` (for
   `dist/matchWorker.js`), and one `ExplanationPanel`, then registers a hover provider for every
   scheme, `regexExplain.explain`, and a `PanelFollower`.
-- `hover.ts`: `RegexHoverProvider` checks `hoverEnabled`, explains the target, and appends a trusted
-  `$(open-preview)` command link that opens the panel with the same pattern. It also passes the
-  target to `ExplanationPanel.follow`, so an open panel shows the hovered regex.
+- `hover.ts`: `RegexHoverProvider` checks `hoverEnabled`, explains the target, and puts a trusted
+  `$(open-preview)` command link that opens the panel with the same pattern above the explanation.
+  When `panelFollow` is on, it also passes the target to `ExplanationPanel.follow`, so an open panel
+  shows the hovered regex.
 - `follow.ts`: `PanelFollower` listens for selection changes and edits in the active editor, waits
   `FOLLOW_DELAY_MS` for them to settle, and, when `panelFollow` is on, passes the regex at the
   cursor to `ExplanationPanel.follow`. That shows it only when the panel is open and the regex
   differs, and, unlike `show`, does not reveal the panel, so the panel stays where the user put it.
   A cursor outside any regex leaves the panel as it is.
-- `preview.ts`: `ExplainCommandHandler` picks the hover link argument, the editor target, or an
+- `explain.ts`: `ExplainCommandHandler` picks the hover link argument, the editor target, or an
   input box, and shows it in the panel. Menus pass a `Uri`, which the library's `isRegexSource`
   rejects.
 
 `src/webview/` holds the explanation panel. `host.ts` and `panel.ts` run in the extension host and
-belong to the extension's TypeScript project; `main.ts` runs in the webview and has its own
-`tsconfig.json` with DOM types, which compiles only it and `protocol.ts`, the messages the two sides
-share.
+belong to the extension's TypeScript project; `main.ts` and `results.ts` run in the webview and have
+their own `tsconfig.json` with DOM types, which compiles only them and `protocol.ts`, the messages
+the two sides share. `webview/test/` holds the tests of `results.ts`, with a `tsconfig.json` that
+adds Node types; `npm run test:unit` runs them with `tsx` in a happy-dom window over `panel.html`.
 
 - `webview/host.ts`: `ExplanationPanel` keeps one webview panel beside the editor, reused for each
-  regex, and answers the page's match requests with `RegexMatcher`, up to `MATCH_LIMIT` matches. Its
-  page allows only its own nonce-tagged script and files from `dist/`.
+  regex, and answers the page's match requests with `RegexMatcher`, up to `MATCH_LIMIT` matches. A
+  new request aborts the one in progress, whose reply the page would ignore, so typing against a
+  slow pattern runs one worker at a time. Its page allows only its own nonce-tagged script and files
+  from `dist/`.
 - `webview/panel.ts`: `PanelTemplate` reads `panel.html` and the `parts.html` partial once, then
   renders `ExplanationRenderer.model()` with Mustache, adding each row's indent, the error's caret
-  line, and highlighted HTML for the literal, each row's `raw`, and a warning's fix. Every other
-  value is escaped with `escapeHtml`; the template inserts the highlighted HTML unescaped, because
-  Shiki has already escaped its text. The page also holds the `match-item` and `match-group`
-  `<template>` elements that the panel script clones. It does not import `vscode`, so it is tested
-  in Node, reading the templates from `src/webview/`; the extension reads the copies in `dist/`.
-  Markup belongs in the templates, not in TypeScript strings; Prettier skips the templates because
-  its HTML formatter would rewrap Mustache tags.
+  line, highlighted HTML for the literal, each row's `raw`, and a warning's fix, and the laid-out
+  state machine. Every other value is escaped with `escape-html`; the template inserts the
+  highlighted HTML unescaped, because Shiki has already escaped its text. The page also holds the
+  `match-item` and `match-group` `<template>` elements that the panel script clones. It does not
+  import `vscode`, so it is tested in Node, reading the templates from `src/webview/`; the extension
+  reads the copies in `dist/`. Markup belongs in the templates, not in TypeScript strings; Prettier
+  skips the templates because its HTML formatter would rewrap Mustache tags.
 - `webview/highlight.ts`: `highlight()` tokenizes a pattern with Shiki's TextMate `regexp` grammar,
   through the synchronous core and its JavaScript regex engine, so rendering needs neither `await`
   nor WebAssembly. It runs in the extension host and cannot see the webview's theme, so each token
@@ -203,37 +224,51 @@ share.
   `panel.css` uses the Light+ colors unless the body has the `vscode-dark` class or a dark
   `vscode-high-contrast` class. Rows are highlighted without their surrounding pattern, so a class
   member such as `+` in `[+-]` is colored as a quantifier.
+- `webview/diagram.ts`: `layoutMachine()` lays out `stateMachine()` left to right in two passes:
+  `measure` sizes each part from its children (label widths are estimated from character counts),
+  then `place` assigns coordinates and SVG path data. It returns plain lists of states, lines,
+  transitions, loops, boxes, and tooltips that `panel.html` draws, so no markup is built in
+  TypeScript; colors come from `--vscode-charts-*` theme variables in `panel.css`.
 - `webview/panel.html`, `webview/parts.html`, `webview/panel.css`: the page's templates and its
   stylesheet, which uses `--vscode-*` theme variables. They sit beside `webview/main.ts` because the
   script and styles depend on the page's IDs and classes.
-- `webview/main.ts`: runs in the webview. It numbers the gutter from the input's lines and follows
-  the inner textarea's scrolling (through `wrappedElement`, with wrapping off and a fixed line
-  height), debounces match requests, lists results by cloning the page's templates, selects a
-  clicked match, and stacks the panes below 600 px. It keeps the input in `setState`. It has no
-  automated tests; `panel.ts` and `protocol.ts` hold the testable logic, and matching runs in the
-  library's `findMatches`.
+- `webview/main.ts`: runs in the webview and connects the page's elements. It follows the inner
+  textarea's scrolling in the gutter (through `wrappedElement`, with wrapping off and a fixed line
+  height), keeps the input and the entries checkbox in `setState`, and stacks the panes below 600
+  px. It shows a state machine step's tooltip (the element its `aria-describedby` names) on hover or
+  focus. It has no automated tests; the logic it calls is in `results.ts`, and the diagram's layout
+  in `diagram.ts`.
+- `webview/results.ts`: `lineNumbers()` numbers the gutter, `MatchRequests` sends a match request
+  once the input stops changing and tells the reply to the last request from stale ones,
+  `showResults()` lists matches or entries by cloning the page's `<template>` elements, and
+  `selectMatch()` selects a clicked match in the input. It works on the elements it is given, so it
+  is tested without VS Code.
 - `webview/protocol.ts`: the webview message types and `isMatchMessage`. It imports only types, so
   both builds include it.
 - `matcher.ts`: `RegexMatcher` runs each request through the library's `findMatches` in a new
-  `worker_threads` worker, so that catastrophic backtracking can be stopped. The module is also the
-  worker's entry point (`dist/matchWorker.js`); it answers requests only in threads that
-  `RegexMatcher` started, which it marks through `workerData`.
+  `worker_threads` worker, so that catastrophic backtracking can be stopped, at the time limit or
+  when the request's `AbortSignal` fires. The module is also the worker's entry point
+  (`dist/matchWorker.js`); it answers requests only in threads that `RegexMatcher` started, which it
+  marks through `workerData`.
 - `targets.ts`: `RegexLocator` returns the selection containing a position (any language) or the
-  regex at it (configured languages). Regexes are cached per document version as a promise.
+  regex at it (configured languages). For the cursor (`targetAt`), a regex that ends at the position
+  also counts, so typing a literal's flags keeps it in the panel; hovers (`regexAt`) use the hovered
+  character only. Regexes are cached per document version as a promise.
 - `configuration.ts`: `getConfig()` and `DEFAULT_CONFIGURATION`. An integration test checks the
   defaults against the manifest.
 
 ## Dependencies
 
-| Package                     | Used by                            | Why                                                                                                                                                                                             |
-| --------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@eslint-community/regexpp` | Library                            | Maintained ECMAScript regex parser with exact offsets; ESLint's own                                                                                                                             |
-| `regexp-ast-analysis`       | Library                            | Character sets with case folding, group numbers, length ranges on the regexpp AST                                                                                                               |
-| `scslre`                    | Library                            | Detects polynomial and exponential backtracking on the regexpp AST and derives safe rewrites                                                                                                    |
-| `shiki`                     | Extension                          | TextMate-grammar syntax highlighting with VS Code's own themes; the panel loads only the `regexp` grammar (12 KB) and the Light+ and Dark+ themes, adding about 200 KB to the bundle            |
-| `mustache`                  | Extension                          | Small, logic-less templates with HTML escaping, loops, conditions, and partials, so the panel markup lives in template files rather than TypeScript strings                                     |
-| `@vscode-elements/elements` | Extension                          | Lit web components styled with VS Code's theme variables; the maintained successor to the deprecated `@vscode/webview-ui-toolkit`. The panel imports only the table, textarea, and split layout |
-| `@vscode/tree-sitter-wasm`  | Library (optional peer), extension | Typed tree-sitter runtime and prebuilt grammars from the VS Code team, ABI-matched; WASM, so one VSIX works on every platform                                                                   |
+| Package                     | Used by                            | Why                                                                                                                                                                                                       |
+| --------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@eslint-community/regexpp` | Library                            | Maintained ECMAScript regex parser with exact offsets; ESLint's own                                                                                                                                       |
+| `regexp-ast-analysis`       | Library                            | Character sets with case folding, group numbers, length ranges on the regexpp AST                                                                                                                         |
+| `scslre`                    | Library                            | Detects polynomial and exponential backtracking on the regexpp AST and derives safe rewrites                                                                                                              |
+| `shiki`                     | Extension                          | TextMate-grammar syntax highlighting with VS Code's own themes; the panel loads only the `regexp` grammar (9 KB) and the Light+ and Dark+ themes, adding about 170 KB to the bundle                       |
+| `mustache`                  | Extension                          | Small, logic-less templates with HTML escaping, loops, conditions, and partials, so the panel markup lives in template files rather than TypeScript strings                                               |
+| `escape-html`               | Extension                          | Escapes Mustache values for HTML content and quoted attributes; the package Express uses, and it leaves `/` and `=` alone, unlike Mustache's built-in escaper                                             |
+| `@vscode-elements/elements` | Extension                          | Lit web components styled with VS Code's theme variables; the maintained successor to the deprecated `@vscode/webview-ui-toolkit`. The panel imports only the table, checkbox, textarea, and split layout |
+| `@vscode/tree-sitter-wasm`  | Library (optional peer), extension | Typed tree-sitter runtime and prebuilt grammars from the VS Code team, ABI-matched; WASM, so one VSIX works on every platform                                                                             |
 
 `regexp-ast-analysis` and `scslre` depend on `refa`, which is about 1 MB of the 1.5 MB extension
 bundle (mostly Unicode case-folding data) and loads in roughly 25 ms. They are maintained alongside
@@ -250,8 +285,16 @@ types), `js-tokens` (JavaScript only), `@ast-grep/napi` (native binaries per pla
 ES module, needs manual `free()` calls, and types matchers as `any`; tree-sitter queries express the
 same matches).
 
+StrykerJS (`@stryker-mutator/core`, with `@stryker-mutator/typescript-checker` to skip mutants that
+do not compile) measures how well the library's unit tests catch changes, which line coverage
+cannot. `stryker.config.json` uses Stryker's command runner to run Mocha through `tsx`, because
+`@stryker-mutator/mocha-runner` imports `mocha/lib/cli/run-helpers`, which Mocha 12 renamed to
+`run-helpers.cjs`.
+
 ## Tests
 
 See [AI_GUIDELINES.md](AI_GUIDELINES.md#tests). The integration launcher
 (`src/test/integration/runTest.ts`) clears `ELECTRON_RUN_AS_NODE`, which VS Code terminals can set
 and which would otherwise start Electron as Node, and uses a fresh temporary profile for each run.
+It tests the VS Code version in `VSCODE_TEST_VERSION`, or stable when unset; CI also runs it on
+Windows, macOS, and the oldest version `engines.vscode` accepts.

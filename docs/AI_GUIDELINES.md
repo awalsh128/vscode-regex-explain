@@ -31,6 +31,8 @@ Tests use **Mocha**, **Chai** (`expect`), and **Sinon** (stubs).
   Code (`.vscode-test/`). Set `MOCHA_GREP` to run matching integration tests only.
 - `npm run test:unit` runs only the Node tests, after `npm run compile`.
 - `npm run test:scripts` runs the script tests directly from TypeScript.
+- `npm run test:mutation` runs StrykerJS mutation testing on the library's unit tests. A surviving
+  mutant in code you changed usually means a missing assertion or case.
 - Shared helpers live in `testing.ts` next to the tests that use them. The integration launcher
   (`runTest.ts`) runs in plain Node, so anything it imports must not import `vscode`; shared paths
   live in `paths.ts` for that reason.

@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { describe, it } from "mocha";
 import * as path from "path";
 import { explainRegex } from "regex-explain";
-import { escapeHtml, PanelResources, PanelTemplate } from "../webview/panel";
+import { PANEL_TITLE, PanelResources, PanelTemplate } from "../webview/panel";
 
 /** The templates in the source tree; the bundle copies them to `dist/`. */
 const TEMPLATE = new PanelTemplate(path.join(__dirname, "..", "..", "src", "webview"));
@@ -33,6 +33,17 @@ describe("PanelTemplate", () => {
     expect(html).to.include('<link rel="stylesheet" href="https://webview.test/dist/panel.css">');
   });
 
+  it("should head the steps table with Pattern and Explanation columns", () => {
+    // Act
+    const html = TEMPLATE.render(explainRegex("a", "", NO_BACKTRACKING), RESOURCES);
+
+    // Assert
+    const headings = [...html.matchAll(/<vscode-table-header-cell>(.*?)</g)].map(
+      ([, text]) => text
+    );
+    expect(headings).to.deep.equal(["Pattern", "Explanation"]);
+  });
+
   it("should render each step as a highlighted table row indented by depth", () => {
     // Act
     const html = TEMPLATE.render(explainRegex("(ab)+", "", NO_BACKTRACKING), RESOURCES);
@@ -44,13 +55,47 @@ describe("PanelTemplate", () => {
         '<span style="--shiki-light:#000000;--shiki-dark:#D4D4D4">ab</span>' +
         '<span style="--shiki-light:#D16969;--shiki-dark:#CE9178">)</span>' +
         '<span style="--shiki-light:#000000;--shiki-dark:#D7BA7D">+</span></code></vscode-table-cell>\n' +
-        "            <vscode-table-cell>Capture group #1, one or more times (as many as possible):</vscode-table-cell>"
+        "              <vscode-table-cell>Capture group #1, one or more times (as many as possible):</vscode-table-cell>"
     );
     expect(html).to.include(
       '<vscode-table-cell><code class="regex" style="margin-left: 1.25em">' +
         '<span style="--shiki-light:#000000;--shiki-dark:#D4D4D4">ab</span></code></vscode-table-cell>\n' +
-        "            <vscode-table-cell>Match the text <code>ab</code></vscode-table-cell>"
+        "              <vscode-table-cell>Match the text <code>ab</code></vscode-table-cell>"
     );
+  });
+
+  it("should draw the state machine with a colored, described transition per step", () => {
+    // Act
+    const html = TEMPLATE.render(explainRegex("a", "", NO_BACKTRACKING), RESOURCES);
+
+    // Assert
+    expect(html).to.include(
+      '<g class="transition literal" tabindex="0" role="img" aria-label="a" aria-describedby="tip-t0">\n' +
+        '            <path class="hit" d="M20 24H52" />\n' +
+        '            <path class="stroke" d="M20 24H52" marker-end="url(#arrow-literal)" />\n' +
+        '            <text x="36" y="19">a</text>'
+    );
+    expect(html).to.include(
+      '<div class="tip" id="tip-t0" role="tooltip" hidden>Match the character <code>a</code></div>'
+    );
+  });
+
+  it("should collapse the steps under a summary that counts them", () => {
+    // Act
+    const html = TEMPLATE.render(explainRegex("(ab)+", "", NO_BACKTRACKING), RESOURCES);
+
+    // Assert
+    expect(html).to.include(
+      '<details class="steps-details">\n        <summary>Steps (2)</summary>'
+    );
+  });
+
+  it("should not draw a state machine for an invalid regex", () => {
+    // Act
+    const html = TEMPLATE.render(explainRegex("(", "", NO_BACKTRACKING), RESOURCES);
+
+    // Assert
+    expect(html).to.not.include('class="machine"');
   });
 
   it("should show the regex, match length, and flags", () => {
@@ -66,6 +111,23 @@ describe("PanelTemplate", () => {
     expect(html).to.include(
       "<li><code>g</code> <em>global</em>: Find all matches instead of stopping after the first.</li>"
     );
+  });
+
+  it("should escape markup in the regex's flags", () => {
+    // Act
+    const html = TEMPLATE.render(explainRegex("a", "<i>", NO_BACKTRACKING), RESOURCES);
+
+    // Assert
+    expect(html).to.include("</span>/&lt;i&gt;</code>");
+  });
+
+  it("should head the page with the panel's title", () => {
+    // Act
+    const html = TEMPLATE.render(explainRegex("a", "", NO_BACKTRACKING), RESOURCES);
+
+    // Assert
+    expect(html).to.include(`<title>${PANEL_TITLE}</title>`);
+    expect(html).to.include(`<h1 id="explanation-heading">${PANEL_TITLE}</h1>`);
   });
 
   it("should leave out the flags heading when there are no flags", () => {
@@ -98,7 +160,7 @@ describe("PanelTemplate", () => {
 
     // Assert
     expect(html).to.include(
-      '<p class="error" role="alert"><strong>Invalid regular expression:</strong> Invalid regular expression: /ab(/: Unterminated group</p>'
+      '<p class="error" role="alert"><strong>Invalid regular expression:</strong> Unterminated group</p>'
     );
     expect(html).to.include('<pre class="caret">ab(\n   ^</pre>');
     expect(html).to.not.include("<vscode-table ");
@@ -155,14 +217,5 @@ describe("PanelTemplate multiline note", () => {
       // Assert
       expect(html.includes('class="note multiline-note"')).to.equal(expected);
     });
-  });
-});
-
-describe("escapeHtml", () => {
-  it("should escape markup and quotes", () => {
-    // Act & Assert
-    expect(escapeHtml(`<a href="x">'&'</a>`)).to.equal(
-      "&lt;a href=&quot;x&quot;&gt;&#39;&amp;&#39;&lt;/a&gt;"
-    );
   });
 });

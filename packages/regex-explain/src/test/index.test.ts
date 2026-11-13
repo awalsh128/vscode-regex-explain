@@ -21,6 +21,7 @@ describe("index", () => {
       "isRegexSource",
       "parseRegexInput",
       "regex101Url",
+      "stateMachine",
     ]);
   });
 });

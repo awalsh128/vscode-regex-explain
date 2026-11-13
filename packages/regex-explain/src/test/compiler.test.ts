@@ -106,6 +106,28 @@ describe("LANGUAGES", () => {
   });
 
   [
+    {
+      language: "java",
+      source: 'class A { Object p = Pattern.compile("a\\sb"); }',
+      expected: "a b",
+    },
+    { language: "ruby", source: 'Regexp.new("a\\sb")', expected: "a b" },
+    { language: "ruby", source: "Regexp.new('a\\sb')", expected: "a\\sb" },
+    { language: "ruby", source: "Regexp.new('a\\\\b')", expected: "a\\b" },
+    { language: "ruby", source: "Regexp.new('it\\'s')", expected: "it's" },
+    { language: "ruby", source: "Regexp.new(%q(a\\)b\\\\))", expected: "a)b\\" },
+    { language: "javascript", source: 'new RegExp("a\\sb")', expected: "asb" },
+  ].forEach(({ language, source, expected }) => {
+    it(`should decode ${source} in ${language} as ${JSON.stringify(expected)}`, async () => {
+      // Act
+      const [found] = await findIn(source, language);
+
+      // Assert
+      expect(found.pattern).to.equal(expected);
+    });
+  });
+
+  [
     { name: "a Python f-string", language: "python", source: 're.compile(f"{x}+")' },
     { name: "a Ruby interpolation", language: "ruby", source: "r = /a#{b}/" },
     { name: "a PHP variable", language: "php", source: '<?php preg_match("/$x/", $s);' },

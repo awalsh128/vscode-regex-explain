@@ -2,7 +2,7 @@
  * Semantic-release plugin that chooses each release's version bump from Conventional Commits and VS
  * Code's pre-release convention: releases use even minor versions (1.0.x, 1.2.x) and pre-releases
  * odd ones (1.1.x, 1.3.x), so the two never collide. It replaces
- * `@semantic-release/commit-analyzer` in the `release` configuration of package.json, and reads
+ * `@semantic-release/commit-analyzer` in the extension's release.config.cjs, and reads
  * `VSCE_PRE_RELEASE` the same way semantic-release-vsce does.
  *
  * | Last version | Run         | Commits             | Bump            |

@@ -13,7 +13,7 @@
       "regex-explain": ["../../../regex-explain/src/index.ts"]
     }
   },
-  "include": ["main.ts", "protocol.ts"],
+  "include": ["main.ts", "protocol.ts", "results.ts"],
   "references": [
     {
       "path": "../../../regex-explain"

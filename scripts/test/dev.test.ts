@@ -67,9 +67,12 @@ function repo(files: Readonly<Record<string, string | undefined>>): ReadFile {
   };
 }
 
-/** Builds a directory lister over in-memory file lists. */
+/** Builds a lister over in-memory file lists, keyed by directory, that includes subdirectories. */
 function tree(dirs: Record<string, string[]>): ListFiles {
-  return (dir) => (dirs[dir] ?? []).map((name) => `${dir}/${name}`);
+  return (dir) =>
+    Object.entries(dirs)
+      .filter(([key]) => key === dir || key.startsWith(`${dir}/`))
+      .flatMap(([key, names]) => names.map((name) => `${key}/${name}`));
 }
 
 describe("settingKey", () => {
@@ -186,17 +189,31 @@ describe("checkCommands", () => {
 });
 
 describe("checkSettingsAccess", () => {
-  it("should report settings reads outside the settings module", () => {
-    // Arrange
-    const hover = `${EXTENSION_DIR}/src/hover.ts`;
-    const read = repo({ [hover]: "vscode.workspace.getConfiguration('x');" });
+  /** Reads settings directly. */
+  const READS = "vscode.workspace.getConfiguration('x');";
 
-    // Act
-    const problems = checkSettingsAccess(read, [SETTINGS_MODULE, hover]);
+  [
+    { name: "a module in src/", dir: `${EXTENSION_DIR}/src`, expected: 1 },
+    {
+      name: "a module in a subdirectory of src/",
+      dir: `${EXTENSION_DIR}/src/webview`,
+      expected: 1,
+    },
+    { name: "a test", dir: `${EXTENSION_DIR}/src/test/integration`, expected: 0 },
+  ].forEach(({ name, dir, expected }) => {
+    it(`should report ${expected} problem(s) for settings read in ${name}`, () => {
+      // Arrange
+      const file = `${dir}/reader.ts`;
+      const read = repo({ [file]: READS });
+      const list = tree({ [`${EXTENSION_DIR}/src`]: ["configuration.ts"], [dir]: ["reader.ts"] });
 
-    // Assert
-    expect(problems).to.have.length(1);
-    expect(problems[0]).to.match(/hover\.ts: reads settings/);
+      // Act
+      const problems = checkSettingsAccess(read, list);
+
+      // Assert
+      expect(problems).to.have.length(expected);
+      problems.forEach((problem) => expect(problem).to.match(/reader\.ts: reads settings/));
+    });
   });
 });
 
@@ -224,6 +241,7 @@ describe("checkTestFiles", () => {
       [`${LIBRARY_DIR}/src`]: ["explainer.ts"],
       [`${LIBRARY_DIR}/src/test`]: ["explainer.test.ts"],
       [`${EXTENSION_DIR}/src`]: ["hover.ts", "targets.ts", "types.d.ts"],
+      [`${EXTENSION_DIR}/src/webview`]: ["host.ts"],
       [`${EXTENSION_DIR}/src/test`]: ["targets.test.ts"],
       [`${EXTENSION_DIR}/src/test/integration`]: ["hover.test.ts"],
       scripts: ["dev.ts", "orphan.ts"],

@@ -10,6 +10,8 @@
     "semantic-release-vsce": "6.1.8"
   },
   "overrides": {
-    "glob@^13": ">=14.0.3"
+    "glob@^13": ">=14.0.3",
+    "minimatch@^10": ">=11.0.2",
+    "@vscode/vsce": "4.1.0"
   }
 }

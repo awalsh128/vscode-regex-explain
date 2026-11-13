@@ -43,13 +43,18 @@ export interface FlagModel {
 
 /** A syntax error, ready to display. */
 export interface ErrorModel {
-  /** The parser's message. */
+  /**
+   * Why the pattern is invalid, such as "Unterminated group", without the parser's "Invalid regular
+   * expression" label and copy of the pattern, which views show on their own.
+   */
   readonly message: string;
   /** The pattern. */
   readonly pattern: string;
   /** Offset of the error in the pattern, if known. */
   readonly index?: number;
-  /** A line of spaces and a `^` that, printed under the pattern, points at the error. */
+  /** The line of the pattern that holds the error, when its offset is known. */
+  readonly line?: string;
+  /** A line of spaces and a `^` that, printed under {@link line}, points at the error. */
   readonly caret?: string;
 }
 
@@ -98,10 +103,10 @@ export class ExplanationRenderer {
       return {
         literal: literal(result),
         error: {
-          message: result.message,
+          message: errorReason(result.message, result.pattern),
           pattern: result.pattern,
           index: result.index,
-          caret: result.index === undefined ? undefined : "^".padStart(result.index + 1),
+          ...(result.index === undefined ? {} : errorLine(result.pattern, result.index)),
         },
         warnings: [],
         rows: [],
@@ -140,7 +145,7 @@ export class ExplanationRenderer {
   }
 
   /**
-   * Renders the explanation as a Markdown table with a Code Point and an Explanation column. Nested
+   * Renders the explanation as a Markdown table with a Pattern and an Explanation column. Nested
    * steps are indented with non-breaking spaces.
    *
    * @param options Rendering options.
@@ -149,8 +154,8 @@ export class ExplanationRenderer {
    */
   markdownTable(options: RenderOptions = {}): string {
     return this.markdown(options, (rows) => [
-      "| Code Point | Explanation |",
-      "| ---------- | ----------- |",
+      "| Pattern | Explanation |",
+      "| ------- | ----------- |",
       ...rows.map(
         (row) =>
           `| ${"&nbsp;&nbsp;".repeat(row.depth)}${escapePipes(code(row.raw))} | ${escapePipes(row.description)} |`
@@ -170,9 +175,7 @@ export class ExplanationRenderer {
     const title = options.title ? [model.literal, ""] : [];
     if (model.error) {
       const caret =
-        model.error.caret === undefined
-          ? []
-          : [`  ${model.error.pattern}`, `  ${model.error.caret}`];
+        model.error.caret === undefined ? [] : [`  ${model.error.line}`, `  ${model.error.caret}`];
       return [...title, `Invalid regular expression: ${model.error.message}`, ...caret].join("\n");
     }
 
@@ -221,7 +224,7 @@ export class ExplanationRenderer {
       const caret =
         model.error.caret === undefined
           ? []
-          : ["", "```text", model.error.pattern, model.error.caret, "```"];
+          : ["", "```text", model.error.line, model.error.caret, "```"];
       const message = `**Invalid regular expression:** ${escapeMarkdown(model.error.message)}`;
       return [...title, message, ...caret].join("\n");
     }
@@ -255,6 +258,22 @@ export class ExplanationRenderer {
  */
 function literal(source: RegexSource): string {
   return `/${source.pattern}/${source.flags}`;
+}
+
+/**
+ * Reduces a parser message, such as "Invalid regular expression: /a(/u: Unterminated group", to its
+ * reason.
+ *
+ * @param message The message from `explainRegex`.
+ * @param pattern The pattern, which the message may repeat between slashes before the reason.
+ *
+ * @returns The reason, or the message unchanged if it has another form.
+ */
+function errorReason(message: string, pattern: string): string {
+  const label = "Invalid regular expression: ";
+  const rest = message.startsWith(label) ? message.slice(label.length) : message;
+  const source = `/${pattern}/`;
+  return rest.startsWith(source) ? rest.slice(source.length).replace(/^[a-z]*: /, "") : rest;
 }
 
 /**
@@ -339,4 +358,21 @@ function escapePipes(text: string): string {
  */
 function escapeMarkdown(text: string): string {
   return text.replace(/[\\`*_{}[\]()#+\-.!|<>]/g, "\\$&");
+}
+
+/**
+ * Finds the line of a pattern that holds an error, so that a long or multi-line pattern is not
+ * printed whole and the caret lines up under the error.
+ *
+ * @param pattern The pattern.
+ * @param index Offset of the error.
+ *
+ * @returns The line, without its line break, and a caret under the error's column.
+ */
+function errorLine(pattern: string, index: number): { line: string; caret: string } {
+  const breaks = [...pattern.matchAll(/\r\n|[\n\r\u2028\u2029]/g)];
+  const before = breaks.filter((b) => b.index + b[0].length <= index).at(-1);
+  const start = before === undefined ? 0 : before.index + before[0].length;
+  const end = breaks.find((b) => b.index >= index)?.index ?? pattern.length;
+  return { line: pattern.slice(start, end), caret: "^".padStart(index - start + 1) };
 }

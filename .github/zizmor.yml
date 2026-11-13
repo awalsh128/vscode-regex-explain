@@ -1,0 +1,6 @@
+# GitHub's self-repository syntax (uses: $/...) is newer than actionlint 1.7.12, which rejects it
+# (rhysd/actionlint#760). Re-enable this audit and switch the local uses: clauses once a release
+# supports it; Dependabot doesn't update the actionlint image, so check its releases.
+rules:
+  self-repository:
+    disable: true

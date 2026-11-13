@@ -76,8 +76,19 @@ describe("ExplanationRenderer.markdownList", () => {
     const md = new ExplanationRenderer(result).markdownList();
 
     // Assert
-    expect(md).to.include("**Invalid regular expression:**");
-    expect(md).to.include("```text\nab(\n   ^\n```");
+    expect(md).to.equal(
+      "**Invalid regular expression:** Unterminated group\n\n```text\nab(\n   ^\n```"
+    );
+  });
+  it("should show only the line with the error of a multi-line pattern", () => {
+    // Arrange
+    const result = explainRegex("ab\ncd(", NO_FLAGS);
+
+    // Act
+    const md = new ExplanationRenderer(result).markdownList();
+
+    // Assert
+    expect(md).to.include("```text\ncd(\n   ^\n```");
   });
 });
 
@@ -96,6 +107,57 @@ describe("ExplanationRenderer.text", () => {
     ]);
   });
 
+  it("should start with the title, then warnings and fixes, and end with the flags", () => {
+    // Arrange
+    const result = explainRegex("^(?:a+)+$", "i");
+
+    // Act
+    const text = new ExplanationRenderer(result).text({ title: true });
+
+    // Assert
+    expect(text.split("\n")).to.deep.equal([
+      "/^(?:a+)+$/i",
+      "",
+      'Warning: "a+" is repeated by "(?:a+)+" and can match the same text in many ways, so a ' +
+        "failed match can take exponential time.",
+      "  Equivalent safe pattern: /^a+$/i",
+      "",
+      "^        Assert position is at the start of the input",
+      "(?:a+)+  Group (non-capturing), one or more times (as many as possible):",
+      '  a+     Match the character "a" (case-insensitive), one or more times (as many as possible)',
+      "$        Assert position is at the end of the input",
+      "",
+      "Matches 1 or more characters.",
+      "",
+      "Flags:",
+      "  i  ignoreCase: Ignore case: letters match both upper and lower case.",
+    ]);
+  });
+
+  it("should leave out the fix, flags, and title when there are none", () => {
+    // Arrange
+    const result = explainRegex("^(a*)*$", NO_FLAGS);
+
+    // Act
+    const text = new ExplanationRenderer(result).text();
+
+    // Assert
+    expect(text).to.match(/^Warning: .*\.\n\n\^ /);
+    expect(text).to.not.include("Equivalent safe pattern");
+    expect(text).to.not.include("Flags:");
+  });
+
+  it("should show only the line with the error of a multi-line pattern", () => {
+    // Arrange
+    const result = explainRegex("const a = 1;\nconst b = (;\nconst c = 3;", NO_FLAGS);
+
+    // Act
+    const text = new ExplanationRenderer(result).text();
+
+    // Assert
+    expect(text.split("\n").slice(-2)).to.deep.equal(["  const c = 3;", "              ^"]);
+  });
+
   it("should report a syntax error with a caret", () => {
     // Arrange
     const result = explainRegex("ab(", NO_FLAGS);
@@ -104,7 +166,7 @@ describe("ExplanationRenderer.text", () => {
     const text = new ExplanationRenderer(result).text();
 
     // Assert
-    expect(text).to.match(/^Invalid regular expression: .*\n {2}ab\(\n {5}\^$/);
+    expect(text).to.equal("Invalid regular expression: Unterminated group\n  ab(\n     ^");
   });
 });
 
@@ -118,8 +180,8 @@ describe("ExplanationRenderer.markdownTable", () => {
 
     // Assert
     expect(md.split("\n").slice(0, 5)).to.deep.equal([
-      "| Code Point | Explanation |",
-      "| ---------- | ----------- |",
+      "| Pattern | Explanation |",
+      "| ------- | ----------- |",
       "| `(a\\|b)` | Capture group #1: |",
       "| &nbsp;&nbsp;`a\\|b` | Match one of 2 alternatives: |",
       "| &nbsp;&nbsp;&nbsp;&nbsp;`a` | Option 1: match the character `a` |",
@@ -134,8 +196,9 @@ describe("ExplanationRenderer.markdownTable", () => {
     const md = new ExplanationRenderer(result).markdownTable();
 
     // Assert
-    expect(md).to.match(/^\*\*Invalid regular expression:\*\*/);
-    expect(md).to.not.include("| Code Point |");
+    expect(md).to.equal(
+      "**Invalid regular expression:** Unterminated group\n\n```text\nab(\n   ^\n```"
+    );
   });
 });
 
@@ -207,15 +270,44 @@ describe("ExplanationRenderer.model", () => {
     expect(model).to.deep.equal({
       literal: "/ab(/",
       error: {
-        message: "Invalid regular expression: /ab(/: Unterminated group",
+        message: "Unterminated group",
         pattern: "ab(",
         index: 3,
+        line: "ab(",
         caret: "   ^",
       },
       warnings: [],
       rows: [],
       flags: [],
       multiline: false,
+    });
+  });
+
+  [
+    { pattern: "a", flags: "x", expected: "Invalid flag 'x'" },
+    { pattern: "(", flags: "u", expected: "Unterminated group" },
+    { pattern: "a/: b(", flags: NO_FLAGS, expected: "Unterminated group" },
+  ].forEach(({ pattern, flags, expected }) => {
+    it(`should reduce the error for /${pattern}/${flags} to "${expected}"`, () => {
+      // Act
+      const model = new ExplanationRenderer(explainRegex(pattern, flags)).model();
+
+      // Assert
+      expect(model.error?.message).to.equal(expected);
+    });
+  });
+
+  [
+    { pattern: "ab\ncd(", line: "cd(", caret: "   ^" },
+    { pattern: "x\r\ny)", line: "y)", caret: " ^" },
+    { pattern: "a)\n", line: "a)", caret: " ^" },
+  ].forEach(({ pattern, line, caret }) => {
+    it(`should point at the error within its line of ${JSON.stringify(pattern)}`, () => {
+      // Act
+      const { error } = new ExplanationRenderer(explainRegex(pattern, NO_FLAGS)).model();
+
+      // Assert
+      expect({ line: error?.line, caret: error?.caret }).to.deep.equal({ line, caret });
     });
   });
 

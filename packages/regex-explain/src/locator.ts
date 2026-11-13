@@ -10,7 +10,7 @@
 import type { Language, Node, Parser, Query, QueryCapture, Range } from "@vscode/tree-sitter-wasm";
 import { LANGUAGES, LanguageSpec } from "./compiler";
 import type { RegexSource } from "./explainer";
-import { decodeEscape, splitDelimitedPattern, translateFlags } from "./strings";
+import { decodeEscape, singleQuotedValue, splitDelimitedPattern, translateFlags } from "./strings";
 
 /**
  * A regex found in source text. The pattern has the source language's string escapes decoded, and
@@ -50,8 +50,8 @@ const SCRIPT_BLOCK = /<script\b[^>]*>([\s\S]*?)<\/script\s*>/gi;
 type TreeSitter = typeof import("@vscode/tree-sitter-wasm");
 
 /**
- * Loads and initializes the tree-sitter runtime once per process, from the first finder's
- * directory.
+ * Loads and initializes the tree-sitter runtime once per process, from the directory of the first
+ * finder to load it successfully.
  */
 let runtime: Promise<TreeSitter> | undefined;
 
@@ -193,12 +193,16 @@ export class RegexFinder {
   }
 
   /**
-   * Loads the tree-sitter runtime, once per process.
+   * Loads the tree-sitter runtime, once per process. A failed load is not kept, so a later call,
+   * possibly from a finder with a different directory, tries again.
    *
    * @returns The runtime's exports.
    */
   private runtime(): Promise<TreeSitter> {
-    runtime ??= loadRuntime(this.wasmDir);
+    runtime ??= loadRuntime(this.wasmDir).catch((error: unknown) => {
+      runtime = undefined;
+      throw error;
+    });
     return runtime;
   }
 }
@@ -243,11 +247,11 @@ function readMatch(
   if (literal) {
     parts = literalParts(literal, source);
   } else if (delimited) {
-    const value = stringValue(delimited, source);
+    const value = stringValue(delimited, source, spec);
     parts = value === undefined ? undefined : splitDelimitedPattern(value);
   } else if (patternString) {
-    const pattern = stringValue(patternString, source);
-    const flags = flagsString ? stringValue(flagsString, source) : "";
+    const pattern = stringValue(patternString, source, spec);
+    const flags = flagsString ? stringValue(flagsString, source, spec) : "";
     parts = pattern === undefined || flags === undefined ? undefined : { pattern, flags };
   } else if (patternNode) {
     parts = { pattern: patternNode.text, flags: node("flags")?.text ?? "" };
@@ -290,11 +294,15 @@ function literalParts(node: Node, source: string): RegexSource | undefined {
  *
  * @param node A string literal node.
  * @param source The parsed source text.
+ * @param spec The language, for its escapes.
  *
  * @returns The value, or undefined if the string interpolates code or has an escape that cannot be
  *   decoded.
  */
-function stringValue(node: Node, source: string): string | undefined {
+function stringValue(node: Node, source: string, spec: LanguageSpec): string | undefined {
+  if (spec.singleQuoted?.test(node.text)) {
+    return singleQuotedValue(node.text);
+  }
   if (node.childCount === 0) {
     return verbatimValue(node.text);
   }
@@ -305,9 +313,9 @@ function stringValue(node: Node, source: string): string | undefined {
     }
     const piece =
       child.type === "escape_sequence"
-        ? decodeEscape(child.text)
+        ? decodeEscape(child.text, spec.escapes)
         : CONTENT_TYPE.test(child.type)
-          ? contentValue(child, source)
+          ? contentValue(child, source, spec)
           : undefined;
     if (piece === undefined) {
       return undefined;
@@ -322,14 +330,15 @@ function stringValue(node: Node, source: string): string | undefined {
  *
  * @param node The content node.
  * @param source The parsed source text.
+ * @param spec The language, for its escapes.
  *
  * @returns The value, or undefined if an escape cannot be decoded.
  */
-function contentValue(node: Node, source: string): string | undefined {
+function contentValue(node: Node, source: string, spec: LanguageSpec): string | undefined {
   let value = "";
   let offset = node.startIndex;
   for (const escape of node.descendantsOfType("escape_sequence")) {
-    const decoded = escape ? decodeEscape(escape.text) : undefined;
+    const decoded = escape ? decodeEscape(escape.text, spec.escapes) : undefined;
     if (!escape || decoded === undefined) {
       return undefined;
     }

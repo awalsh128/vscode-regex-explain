@@ -24,6 +24,13 @@ export interface LanguageSpec {
   readonly query: string;
   /** Flags that mean something else in JavaScript, for `translateFlags`. */
   readonly flags?: Readonly<Record<string, string>>;
+  /** String escapes that mean something else in JavaScript, for `decodeEscape`. */
+  readonly escapes?: Readonly<Record<string, string>>;
+  /**
+   * String literals, matched by their source text, whose grammar leaves the escapes of
+   * `singleQuotedValue` undecoded, such as Ruby's `'...'` and `%q(...)`.
+   */
+  readonly singleQuoted?: RegExp;
   /** Parse only the `<script>` blocks, for single-file component formats. */
   readonly scriptBlocks?: boolean;
 }
@@ -100,6 +107,7 @@ export const LANGUAGES: Readonly<Record<string, LanguageSpec>> = {
   java: {
     // Text blocks ("""...""") strip indentation, which the decoder does not model.
     grammar: "java",
+    escapes: { s: " " },
     query: `
 (method_invocation
   object: (identifier) @_class
@@ -145,6 +153,8 @@ export const LANGUAGES: Readonly<Record<string, LanguageSpec>> = {
   ruby: {
     grammar: "ruby",
     flags: RUBY_FLAGS,
+    escapes: { s: " " },
+    singleQuoted: /^(?:'|%q)/,
     query: `
 (regex) @literal
 (call

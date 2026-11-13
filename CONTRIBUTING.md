@@ -43,7 +43,14 @@ All changes follow [docs/AI_GUIDELINES.md](docs/AI_GUIDELINES.md) and the docume
 
 `npm test` downloads VS Code into `.vscode-test/` on its first run and opens a test window. On a
 machine without a display, run it under `xvfb-run -a npm test`, as CI does. Run only some
-integration tests with `MOCHA_GREP="RegexHoverProvider" npm run test:integration`.
+integration tests with `MOCHA_GREP="RegexHoverProvider" npm run test:integration`, and test another
+VS Code version with `VSCODE_TEST_VERSION=1.100.0 npm run test:integration`.
+
+`npm run test:mutation` runs [StrykerJS](https://stryker-mutator.io/) on the library: it mutates
+`packages/regex-explain/src/*.ts` and reports each mutant the unit tests fail to catch. A full run
+takes several minutes, so it is not part of `npm test` or CI. The report is written to
+`reports/mutation/index.html`, and later runs reuse `reports/stryker-incremental.json` to test only
+changed code. Use it to find gaps in tests for code you changed; the unit tests must pass first.
 
 The extension icon is `packages/vscode-regex-explain/images/logo.png`, rendered from `logo.svg` in
 the same directory. After editing the SVG, render it again at 256×256, for example with
@@ -143,6 +150,11 @@ semantic-release and its plugins are locked in
 [.github/actions/semantic-release/package-lock.json](.github/actions/semantic-release/package-lock.json),
 apart from the root workspace. To update them, edit that directory's `package.json` and run
 `npm install --package-lock-only --ignore-scripts` there.
+
+[Dependabot](.github/dependabot.yml) opens weekly pull requests against `staging` for the root
+workspace, the release tools, and the SHA-pinned actions in the workflows and composite actions.
+Their titles use the `build` type, so retitle one as `fix:` when a runtime dependency update should
+trigger a release.
 
 ### Publishing the Library
 

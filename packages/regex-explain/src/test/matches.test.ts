@@ -77,6 +77,20 @@ describe("findMatches", () => {
   });
 
   [
+    { name: "one text", entries: false },
+    { name: "entries", entries: true },
+  ].forEach(({ name, entries }) => {
+    it(`should not say ${name} stopped at the limit when it found exactly that many`, () => {
+      // Act
+      const response = findMatches({ pattern: "a", flags: "", text: "a\na", limit: 2, entries });
+
+      // Assert
+      expect(response.matches).to.have.length(2);
+      expect(response.truncated).to.equal(false);
+    });
+  });
+
+  [
     { flags: "", expected: 2 },
     { flags: "g", expected: 2 },
     { flags: "i", expected: 3 },
@@ -122,7 +136,7 @@ describe("describeMatches", () => {
     {
       name: "matches stopped at the limit",
       response: findMatches({ pattern: "a", flags: "", text: "aaa", limit: 2 }),
-      summary: "2 matches (showing the first 2).",
+      summary: "More than 2 matches (showing the first 2).",
       problem: false,
     },
     {
@@ -271,13 +285,23 @@ describe("describeMatches with entries", () => {
   });
 
   [
-    { text: "", summary: "No entries." },
-    { text: "a", summary: "1 of 1 entry matches." },
-  ].forEach(({ text, summary }) => {
+    { text: "", limit: NO_LIMIT, summary: "No entries." },
+    { text: "a", limit: NO_LIMIT, summary: "1 of 1 entry matches." },
+    {
+      text: "a\na\na\nb",
+      limit: 2,
+      summary: "At least 2 entries match (showing the first 2 matches).",
+    },
+    {
+      text: "a\na",
+      limit: 1,
+      summary: "At least 1 entry matches (showing the first match).",
+    },
+  ].forEach(({ text, limit, summary }) => {
     it(`should summarize ${JSON.stringify(text)} as "${summary}"`, () => {
       // Act
       const model = describeMatches(
-        findMatches({ pattern: "a", flags: "", text, limit: NO_LIMIT, entries: true })
+        findMatches({ pattern: "a", flags: "", text, limit, entries: true })
       );
 
       // Assert

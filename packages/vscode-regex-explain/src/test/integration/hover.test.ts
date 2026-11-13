@@ -27,7 +27,7 @@ describe("RegexHoverProvider", () => {
     expect(hovers[0]).to.include("*global*");
   });
 
-  it("should end with a button that opens the panel for the same regex", async () => {
+  it("should start with a button that opens the panel for the same regex", async () => {
     // Arrange
     await activateExtension();
     const editor = await openEditor(SOURCE, "typescript");
@@ -37,9 +37,11 @@ describe("RegexHoverProvider", () => {
     const hovers = await regexHovers(editor.document, IN_LITERAL);
 
     // Assert
-    expect(hovers[0]).to.include(
-      `[$(open-preview) Open explanation](command:regexExplain.explain?${args} "Open the explanation and a match tester beside the editor")`
-    );
+    expect(
+      hovers[0].startsWith(
+        `[$(open-preview) Open explanation](command:regexExplain.explain?${args} "Open the explanation and a match tester beside the editor")\n\n`
+      )
+    ).to.equal(true);
   });
 
   [

@@ -40,8 +40,8 @@ Matches exactly 8 characters.
 
 <!-- prettier-ignore -->
 ```md
-| Code Point | Explanation |
-| ---------- | ----------- |
+| Pattern | Explanation |
+| ------- | ----------- |
 | `^` | Assert position is at the start of the input |
 | `\d{3}` | Match a digit (0-9), exactly 3 times |
 | `-` | Match the character `-` |
@@ -102,23 +102,78 @@ type guard that tells whether an untyped value, such as a command argument, has 
 `new ExplanationRenderer(result)` renders an `ExplainResult` in several formats:
 
 - `markdownList(options?)`: a nested Markdown list, as in hovers.
-- `markdownTable(options?)`: a Markdown table with Code Point and Explanation columns. Nested steps
-  are indented with `&nbsp;`.
+- `markdownTable(options?)`: a Markdown table with Pattern and Explanation columns. Nested steps are
+  indented with `&nbsp;`.
 - `text(options?)`: aligned plain text, with code spans shown in double quotes.
 - `model()`: everything a view shows, as an `ExplanationModel`, which the other formats render from:
-  the regex as a `literal` (`/pattern/flags`), the `error` (`ErrorModel`: `message`, `pattern`,
-  `index`, and a `caret` line such as `"   ^"` to print under the pattern) for an invalid pattern,
-  `warnings` (`WarningModel`: the `fix` as a literal), the steps as `rows` (`ExplanationRow`: `raw`
-  and nesting `depth`), the `length` sentence such as "Matches 2 to 4 characters.", `flags`
-  (`FlagModel`: `flag` and `name`), and whether the pattern is `multiline`. Each warning, row, and
-  flag has a `description`, which may contain Markdown code spans, and the same text as `parts`:
-  `TextPart`s with the `text` and whether it is `code`, so that HTML or other UIs render it without
-  a Markdown parser. For an invalid pattern, the model has only the `literal` and `error`; its lists
-  are empty.
+  the regex as a `literal` (`/pattern/flags`), the `error` (`ErrorModel`: the `message` reason such
+  as "Unterminated group", `pattern`, `index`, the `line` of the pattern that holds the error, and a
+  `caret` line such as `"   ^"` to print under that line) for an invalid pattern, `warnings`
+  (`WarningModel`: the `fix` as a literal), the steps as `rows` (`ExplanationRow`: `raw` and nesting
+  `depth`), the `length` sentence such as "Matches 2 to 4 characters.", `flags` (`FlagModel`: `flag`
+  and `name`), and whether the pattern is `multiline`. Each warning, row, and flag has a
+  `description`, which may contain Markdown code spans, and the same text as `parts`: `TextPart`s
+  with the `text` and whether it is `code`, so that HTML or other UIs render it without a Markdown
+  parser. For an invalid pattern, the model has only the `literal` and `error`; its lists are empty.
 
 The Markdown and text formats put warnings first, then the steps, the match length, and the flags.
-Invalid patterns render the error with a caret under its position. `RenderOptions`:
-`{ title?: boolean }` starts the output with the whole regex (under a heading in Markdown).
+Invalid patterns render the error with a caret under its position, showing only the pattern's line
+that holds it. `RenderOptions`: `{ title?: boolean }` starts the output with the whole regex (under
+a heading in Markdown).
+
+### `stateMachine(explanation)`
+
+`stateMachine(explanation)` describes a successful `explainRegex` result as a state machine, nested
+by the pattern's structure so that a view can lay it out. It returns a `MachinePart`, one of:
+
+- `MachineTransition`: one step between two states, with its `kind` (`TransitionKind`: `literal`,
+  `set`, `assertion`, `backreference`, or `empty`), its pattern source as the `label`, and its
+  `start` and `end` offsets. A run of literal characters is one transition.
+- `MachineSequence`: `steps` that follow each other, with a state between each two.
+- `MachineChoice`: `options` that fork from one state and rejoin at another.
+- `MachineRepeat`: a `body` matched `min` to `max` times (`Infinity` when unbounded), `greedy` or
+  not.
+- `MachineGroup`: a capture group, or a group that changes flags, around a `body`, with a `label`
+  such as `#1 year` or `flags i`. Non-capturing groups without flags leave no trace.
+
+Transitions, repeats, and groups carry the `description` of the pattern source they cover from the
+explanation, and the same text as `parts`, as in `ExplanationRenderer`'s model.
+
+```ts
+const result = explainRegex("x+|y");
+if (result.ok) {
+  const keys = ["type", "options", "body", "min", "max", "kind", "label", "description"];
+  console.log(JSON.stringify(stateMachine(result), keys, 2));
+}
+```
+
+prints (`JSON.stringify` writes `Infinity` as `null`):
+
+```json
+{
+  "type": "choice",
+  "options": [
+    {
+      "type": "repeat",
+      "body": {
+        "type": "transition",
+        "kind": "literal",
+        "label": "x",
+        "description": "Option 1: match the character `x`, one or more times (as many as possible)"
+      },
+      "min": 1,
+      "max": null,
+      "description": "Option 1: match the character `x`, one or more times (as many as possible)"
+    },
+    {
+      "type": "transition",
+      "kind": "literal",
+      "label": "y",
+      "description": "Option 2: match the character `y`"
+    }
+  ]
+}
+```
 
 ### `describeCount(min, max)`
 
@@ -129,9 +184,10 @@ Words a repetition count ("one or more times"), for callers that build their own
 `new RegexFinder(wasmDir)` finds regexes in source code with tree-sitter: regex literals, and string
 literals passed to regex APIs such as `new RegExp()`, Python's `re.compile()`, or Java's
 `Pattern.compile()`. `wasmDir` is a directory or URL holding `tree-sitter.wasm` and the grammar
-files; in Node, pass the `wasm` directory of `@vscode/tree-sitter-wasm`. The runtime and each
-grammar load on first use. `find` returns no regexes for a source longer than 1,000,000 characters,
-since parsing generated or minified files on every change is slow.
+files; in Node, pass the `wasm` directory of `@vscode/tree-sitter-wasm`. Finders share one runtime,
+loaded on first use from the first `wasmDir` that loads it without error; each grammar loads on
+first use. `find` returns no regexes for a source longer than 1,000,000 characters, since parsing
+generated or minified files on every change is slow.
 
 ```ts
 import { createRequire } from "module";
@@ -205,17 +261,19 @@ where they can be stopped, such as a worker thread.
 ### `describeMatches(response)`
 
 Words a `MatchResponse` for display, returning a `MatchesModel`: a one-sentence `summary` such as "2
-matches." or why the regex could not run, whether it reports a `problem` (an `error` or `timedOut`),
-and the `matches` (`MatchModel`). Each has the `start` and `end` offsets, `lines` such as `L1` or
-`L1–2`, the `text` ("(empty)" for an empty match), and `groups` (`MatchGroupModel`: the `name`,
-which is `$1`, `$2`, and so on or the group's name, the `value` ("(no match)" if the group did not
-take part), and whether it `matched`).
+matches.", "More than 2 matches (showing the first 2)." when matching stopped at the limit, or why
+the regex could not run, whether it reports a `problem` (an `error` or `timedOut`), and the
+`matches` (`MatchModel`). Each has the `start` and `end` offsets, `lines` such as `L1` or `L1–2`,
+the `text` ("(empty)" for an empty match), and `groups` (`MatchGroupModel`: the `name`, which is
+`$1`, `$2`, and so on or the group's name, the `value` ("(no match)" if the group did not take
+part), and whether it `matched`).
 
-For a response with `entries`, the summary counts entries instead, such as "2 of 3 entries match."
-or "No entries.", and the model also has the `entries` (`EntryModel`: the `line` such as `L2`, its
-`start` and `end`, its `text` ("(empty)" for an empty line), whether it `matched`, and its
-`matches`). For the entries example above, they are `L1` "2024-05" (matched, 1 match), `L2` "soon"
-(not matched), and `L3` "2025-01" (matched, 1 match).
+For a response with `entries`, the summary counts entries instead, such as "2 of 3 entries match.",
+"At least 2 entries match (showing the first 2 matches)." at the limit, or "No entries.", and the
+model also has the `entries` (`EntryModel`: the `line` such as `L2`, its `start` and `end`, its
+`text` ("(empty)" for an empty line), whether it `matched`, and its `matches`). For the entries
+example above, they are `L1` "2024-05" (matched, 1 match), `L2` "soon" (not matched), and `L3`
+"2025-01" (matched, 1 match).
 
 ```ts
 const model = describeMatches(
@@ -255,7 +313,8 @@ replaced by `new ExplanationRenderer(result).markdownList(options)`, `.text(opti
 
 Patterns follow **JavaScript** semantics up to ES2025: named and duplicate named groups, lookbehind,
 Unicode property escapes, the `v` flag's set operations and `\q{...}`, and inline modifiers such as
-`(?i:...)`. Constructs specific to other engines are reported as syntax errors.
+`(?i:...)`. Most constructs specific to other engines are reported as syntax errors, but without the
+`u` or `v` flag an escape JavaScript lacks, such as `\A` or `\z`, is explained as the plain letter.
 
 The backtracking check omits patterns that are slow only because the engine retries them at every
 input position (for example `/a+b/`); those are too common to be useful as warnings. Fixes are not

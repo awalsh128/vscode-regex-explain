@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { describe, it } from "mocha";
-import { decodeEscape, splitDelimitedPattern, translateFlags } from "../strings";
+import { decodeEscape, singleQuotedValue, splitDelimitedPattern, translateFlags } from "../strings";
 
 describe("decodeEscape", () => {
   [
@@ -24,6 +24,27 @@ describe("decodeEscape", () => {
     it(`should decode ${JSON.stringify(escape)} as ${JSON.stringify(expected)}`, () => {
       // Act & Assert
       expect(decodeEscape(escape)).to.equal(expected);
+    });
+  });
+
+  it("should prefer the language's own meaning of an escape", () => {
+    // Act & Assert
+    expect(decodeEscape("\\s", { s: " " })).to.equal(" ");
+  });
+});
+
+describe("singleQuotedValue", () => {
+  [
+    { text: "'a\\\\b'", expected: "a\\b" },
+    { text: "'it\\'s'", expected: "it's" },
+    { text: "'\\d'", expected: "\\d" },
+    { text: "%q(a\\)b\\(c)", expected: "a)b(c" },
+    { text: "%q(\\')", expected: "\\'" },
+    { text: "'", expected: undefined },
+  ].forEach(({ text, expected }) => {
+    it(`should read ${text} as ${JSON.stringify(expected)}`, () => {
+      // Act & Assert
+      expect(singleQuotedValue(text)).to.equal(expected);
     });
   });
 });

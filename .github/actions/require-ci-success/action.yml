@@ -20,10 +20,10 @@ runs:
         SHA: ${{ inputs.sha }}
       run: |
         set -euo pipefail
-        # Only completed runs count: promoting main starts a CI run for the same commit, which is
-        # still in progress when the release checks CI.
+        # Only completed push runs count: promoting main starts a CI run for the same commit, which
+        # is still in progress when the release checks CI, and scheduled runs only audit.
         conclusion="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --commit "$SHA" \
-          --status completed --limit 1 --json conclusion --jq '.[0].conclusion // ""')"
+          --event push --status completed --limit 1 --json conclusion --jq '.[0].conclusion // ""')"
         if [[ "$conclusion" != "success" ]]; then
           echo "::error::CI for commit $SHA is '${conclusion:-missing}', not 'success'."
           exit 1

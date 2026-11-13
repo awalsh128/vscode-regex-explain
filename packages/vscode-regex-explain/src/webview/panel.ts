@@ -1,10 +1,11 @@
 /**
  * Renders the explanation panel's page from the Mustache templates in `src/webview/`, which the
  * bundle copies to `dist/`: `panel.html` for the page and `parts.html` for description text. This
- * module only shapes the library's `ExplanationModel` into the templates' view, with regexes
- * highlighted by `highlight.ts`. It does not import `vscode`, so that it can be tested in Node; the
- * panel passes in the webview URIs.
+ * module only shapes the library's `ExplanationModel` and state machine into the templates' view,
+ * with regexes highlighted by `highlight.ts` and the machine laid out by `diagram.ts`. It does not
+ * import `vscode`, so that it can be tested in Node; the panel passes in the webview URIs.
  */
+import escapeHtml from "escape-html";
 import * as fs from "fs";
 import Mustache from "mustache";
 import * as path from "path";
@@ -14,7 +15,9 @@ import {
   parseRegexInput,
   regex101Url,
   RegexSource,
+  stateMachine,
 } from "regex-explain";
+import { layoutMachine } from "./diagram";
 import { highlight } from "./highlight";
 
 /** Webview-specific values the page needs. */
@@ -29,7 +32,10 @@ export interface PanelResources {
   readonly styleUri: string;
 }
 
-/** Indentation per nesting level of the Code Point column, in `em`. */
+/** The panel's title, on its tab and as the page heading. */
+export const PANEL_TITLE = "Regex Explanation";
+
+/** Indentation per nesting level of the Pattern column, in `em`. */
 const INDENT_EM = 1.25;
 
 /** Renders explanation pages from the panel templates. */
@@ -62,20 +68,19 @@ export class PanelTemplate {
     const error = model.error && {
       message: model.error.message,
       caret:
-        model.error.caret === undefined
-          ? undefined
-          : `${model.error.pattern}\n${model.error.caret}`,
+        model.error.caret === undefined ? undefined : `${model.error.line}\n${model.error.caret}`,
     };
     const view = {
       ...resources,
       ...model,
-      literalHtml: literalHtml(result),
+      title: PANEL_TITLE,
+      literal: literalView(result),
       // The page updates the link with the input text as the user types.
       regex101Url: regex101Url(result),
       error,
       warnings: model.warnings.map((warning) => {
         const fix = warning.fix === undefined ? undefined : parseRegexInput(warning.fix);
-        return { ...warning, fixHtml: fix && literalHtml(fix) };
+        return { ...warning, fixLiteral: fix && literalView(fix) };
       }),
       rows: model.rows.map((row) => ({
         ...row,
@@ -83,6 +88,7 @@ export class PanelTemplate {
         indent: row.depth * INDENT_EM,
       })),
       hasFlags: model.flags.length > 0,
+      diagram: result.ok ? layoutMachine(stateMachine(result)) : undefined,
     };
     // Mustache passes numbers, such as the indent, to the escape function as they are.
     return Mustache.render(this.page, view, this.partials, {
@@ -92,28 +98,12 @@ export class PanelTemplate {
 }
 
 /**
- * Renders a regex as a literal with its pattern highlighted.
+ * Shapes a regex for the template, which writes it as a literal.
  *
  * @param source The regex.
  *
- * @returns HTML for `/pattern/flags`, with the slashes and flags as plain text.
+ * @returns The pattern as highlighted HTML, and the flags.
  */
-function literalHtml(source: RegexSource): string {
-  return `/${highlight(source.pattern)}/${escapeHtml(source.flags)}`;
-}
-
-/**
- * Escapes text for use in HTML content and quoted attributes.
- *
- * @param text The text.
- *
- * @returns The escaped text.
- */
-export function escapeHtml(text: string): string {
-  // TODO: Use escape-html instead
-  return text.replace(
-    /[&<>"']/g,
-    (char) =>
-      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char] ?? char
-  );
+function literalView(source: RegexSource): { patternHtml: string; flags: string } {
+  return { patternHtml: highlight(source.pattern), flags: source.flags };
 }

@@ -11,6 +11,9 @@
       "path": "./packages/vscode-regex-explain/src/webview"
     },
     {
+      "path": "./packages/vscode-regex-explain/src/webview/test"
+    },
+    {
       "path": "./scripts"
     }
   ]
