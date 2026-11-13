@@ -81,7 +81,7 @@ then hover the selection. Hovering `/^(?<user>[\w.+-]+)@([a-z\d-]+\.)+[a-z]{2,}$
 
 Open the explanation panel beside the editor using any of:
 
-- **Hover**: Click **Open explanation** at the end of a hover.
+- **Hover**: Click **Open explanation** at the top of a hover.
 - **Command Palette**: Run **Regex Explain: Explain Regex** (`regexExplain.explain`).
 - **Context Menu**: Right-click in the editor and choose **Regex Explain: Explain Regex**.
 

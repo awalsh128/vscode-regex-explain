@@ -1,3 +1,7 @@
+/**
+ * The hover provider: explains the selection or the regex under the pointer, with a button that
+ * opens the explanation panel, and shows the hovered regex in the panel when it is open.
+ */
 import { explainRegex, ExplanationRenderer } from "regex-explain";
 import * as vscode from "vscode";
 import { getConfig } from "./configuration";
