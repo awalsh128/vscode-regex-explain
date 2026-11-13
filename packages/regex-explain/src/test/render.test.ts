@@ -80,6 +80,16 @@ describe("ExplanationRenderer.markdownList", () => {
       "**Invalid regular expression:** Unterminated group\n\n```text\nab(\n   ^\n```"
     );
   });
+  it("should show only the line with the error of a multi-line pattern", () => {
+    // Arrange
+    const result = explainRegex("ab\ncd(", NO_FLAGS);
+
+    // Act
+    const md = new ExplanationRenderer(result).markdownList();
+
+    // Assert
+    expect(md).to.include("```text\ncd(\n   ^\n```");
+  });
 });
 
 describe("ExplanationRenderer.text", () => {
@@ -135,6 +145,17 @@ describe("ExplanationRenderer.text", () => {
     expect(text).to.match(/^Warning: .*\.\n\n\^ /);
     expect(text).to.not.include("Equivalent safe pattern");
     expect(text).to.not.include("Flags:");
+  });
+
+  it("should show only the line with the error of a multi-line pattern", () => {
+    // Arrange
+    const result = explainRegex("const a = 1;\nconst b = (;\nconst c = 3;", NO_FLAGS);
+
+    // Act
+    const text = new ExplanationRenderer(result).text();
+
+    // Assert
+    expect(text.split("\n").slice(-2)).to.deep.equal(["  const c = 3;", "              ^"]);
   });
 
   it("should report a syntax error with a caret", () => {
@@ -252,6 +273,7 @@ describe("ExplanationRenderer.model", () => {
         message: "Unterminated group",
         pattern: "ab(",
         index: 3,
+        line: "ab(",
         caret: "   ^",
       },
       warnings: [],
@@ -272,6 +294,20 @@ describe("ExplanationRenderer.model", () => {
 
       // Assert
       expect(model.error?.message).to.equal(expected);
+    });
+  });
+
+  [
+    { pattern: "ab\ncd(", line: "cd(", caret: "   ^" },
+    { pattern: "x\r\ny)", line: "y)", caret: " ^" },
+    { pattern: "a)\n", line: "a)", caret: " ^" },
+  ].forEach(({ pattern, line, caret }) => {
+    it(`should point at the error within its line of ${JSON.stringify(pattern)}`, () => {
+      // Act
+      const { error } = new ExplanationRenderer(explainRegex(pattern, NO_FLAGS)).model();
+
+      // Assert
+      expect({ line: error?.line, caret: error?.caret }).to.deep.equal({ line, caret });
     });
   });
 

@@ -63,9 +63,7 @@ export class PanelTemplate {
     const error = model.error && {
       message: model.error.message,
       caret:
-        model.error.caret === undefined
-          ? undefined
-          : `${model.error.pattern}\n${model.error.caret}`,
+        model.error.caret === undefined ? undefined : `${model.error.line}\n${model.error.caret}`,
     };
     const view = {
       ...resources,

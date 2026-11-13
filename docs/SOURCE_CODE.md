@@ -122,8 +122,9 @@ pattern, and `isRegexSource` is the type guard for untyped `RegexSource` values.
 it flattens the node tree with depths and pairs each description with its `splitCodeSpans` parts.
 `markdownList`, `markdownTable`, and `text` render from the model in one layout: warnings, then the
 steps, the length sentence, and the flags. A syntax error's model carries only the parser's reason,
-since all three formats and the panel add their own label, and the `caret` line they print under the
-pattern. Markdown uses the descriptions as they are, `text` joins the parts with code in double
+since all three formats and the panel add their own label, and the pattern's `line` that holds the
+error with the `caret` under it, which they print, so a long multi-line selection is not repeated
+whole. Markdown uses the descriptions as they are, `text` joins the parts with code in double
 quotes, and table cells escape `|`.
 
 ### `text.ts`
