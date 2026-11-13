@@ -136,11 +136,12 @@ controls, `U+XXXX` for invisible ones), and `lowerFirst()` and `withArticle()` a
 `RegexFinder` imports `@vscode/tree-sitter-wasm` on first use, so the rest of the library works
 without that optional peer dependency, skips sources over `MAX_SCAN_LENGTH` characters, and loads
 each grammar once from a WASM directory or URL (`dist/` in the extension, the installed package in
-tests). Paths are joined with `/` rather than Node's `path`, so the module also works in bundlers.
-`find` parses the text, runs the language's query, and reads each match by its capture names: regex
-literals keep their source text, string literals are decoded, and strings with interpolations are
-skipped. For `scriptBlocks` languages (Vue, Svelte) only `<script>` blocks are parsed, through
-`includedRanges`. Offsets are UTF-16 code units, as VS Code expects.
+tests). The runtime is shared by every finder in the process; a failed load is not cached, so the
+next `find` tries again. Paths are joined with `/` rather than Node's `path`, so the module also
+works in bundlers. `find` parses the text, runs the language's query, and reads each match by its
+capture names: regex literals keep their source text, string literals are decoded, and strings with
+interpolations are skipped. For `scriptBlocks` languages (Vue, Svelte) only `<script>` blocks are
+parsed, through `includedRanges`. Offsets are UTF-16 code units, as VS Code expects.
 
 ### `compiler.ts`
 

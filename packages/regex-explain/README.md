@@ -129,9 +129,10 @@ Words a repetition count ("one or more times"), for callers that build their own
 `new RegexFinder(wasmDir)` finds regexes in source code with tree-sitter: regex literals, and string
 literals passed to regex APIs such as `new RegExp()`, Python's `re.compile()`, or Java's
 `Pattern.compile()`. `wasmDir` is a directory or URL holding `tree-sitter.wasm` and the grammar
-files; in Node, pass the `wasm` directory of `@vscode/tree-sitter-wasm`. The runtime and each
-grammar load on first use. `find` returns no regexes for a source longer than 1,000,000 characters,
-since parsing generated or minified files on every change is slow.
+files; in Node, pass the `wasm` directory of `@vscode/tree-sitter-wasm`. Finders share one runtime,
+loaded on first use from the first `wasmDir` that loads it without error; each grammar loads on
+first use. `find` returns no regexes for a source longer than 1,000,000 characters, since parsing
+generated or minified files on every change is slow.
 
 ```ts
 import { createRequire } from "module";

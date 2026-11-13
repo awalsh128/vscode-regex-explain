@@ -1,7 +1,8 @@
 import { expect } from "chai";
+import { execFileSync } from "child_process";
 import { describe, it } from "mocha";
 import { findRegexAt, LocatedRegex, MAX_SCAN_LENGTH } from "../locator";
-import { FINDER, findIn } from "./testing";
+import { FINDER, findIn, WASM_DIR } from "./testing";
 
 /** A regex at the start of a source, for lookups that only care about offsets. */
 const REGEX: LocatedRegex = { pattern: "a", flags: "g", start: 4, end: 8 };
@@ -85,6 +86,28 @@ describe("RegexFinder", () => {
 
     // Assert
     expect(found).to.deep.equal([]);
+  });
+
+  it("should load the runtime again after a finder fails to load it", function () {
+    // Arrange
+    // The runtime is loaded once per process, so this runs in a process that has not loaded it,
+    // with tsx so that it also loads the TypeScript sources that mutation testing runs.
+    this.timeout(10_000);
+    const script = `
+      const { RegexFinder } = require(${JSON.stringify(require.resolve("../locator"))});
+      new RegexFinder("/missing")
+        .find("/a/", "javascript")
+        .catch(() => new RegexFinder(${JSON.stringify(WASM_DIR)}).find("/a/", "javascript"))
+        .then((found) => process.stdout.write(JSON.stringify(found)));
+    `;
+
+    // Act
+    const output = execFileSync(process.execPath, ["--import", "tsx", "-e", script], {
+      stdio: "pipe",
+    }).toString();
+
+    // Assert
+    expect(JSON.parse(output)).to.deep.equal([{ pattern: "a", flags: "", start: 0, end: 3 }]);
   });
 });
 
