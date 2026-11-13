@@ -55,13 +55,47 @@ describe("PanelTemplate", () => {
         '<span style="--shiki-light:#000000;--shiki-dark:#D4D4D4">ab</span>' +
         '<span style="--shiki-light:#D16969;--shiki-dark:#CE9178">)</span>' +
         '<span style="--shiki-light:#000000;--shiki-dark:#D7BA7D">+</span></code></vscode-table-cell>\n' +
-        "            <vscode-table-cell>Capture group #1, one or more times (as many as possible):</vscode-table-cell>"
+        "              <vscode-table-cell>Capture group #1, one or more times (as many as possible):</vscode-table-cell>"
     );
     expect(html).to.include(
       '<vscode-table-cell><code class="regex" style="margin-left: 1.25em">' +
         '<span style="--shiki-light:#000000;--shiki-dark:#D4D4D4">ab</span></code></vscode-table-cell>\n' +
-        "            <vscode-table-cell>Match the text <code>ab</code></vscode-table-cell>"
+        "              <vscode-table-cell>Match the text <code>ab</code></vscode-table-cell>"
     );
+  });
+
+  it("should draw the state machine with a colored, described transition per step", () => {
+    // Act
+    const html = TEMPLATE.render(explainRegex("a", "", NO_BACKTRACKING), RESOURCES);
+
+    // Assert
+    expect(html).to.include(
+      '<g class="transition literal" tabindex="0" role="img" aria-label="a" aria-describedby="tip-t0">\n' +
+        '            <path class="hit" d="M20 24H52" />\n' +
+        '            <path class="stroke" d="M20 24H52" marker-end="url(#arrow-literal)" />\n' +
+        '            <text x="36" y="19">a</text>'
+    );
+    expect(html).to.include(
+      '<div class="tip" id="tip-t0" role="tooltip" hidden>Match the character <code>a</code></div>'
+    );
+  });
+
+  it("should collapse the steps under a summary that counts them", () => {
+    // Act
+    const html = TEMPLATE.render(explainRegex("(ab)+", "", NO_BACKTRACKING), RESOURCES);
+
+    // Assert
+    expect(html).to.include(
+      '<details class="steps-details">\n        <summary>Steps (2)</summary>'
+    );
+  });
+
+  it("should not draw a state machine for an invalid regex", () => {
+    // Act
+    const html = TEMPLATE.render(explainRegex("(", "", NO_BACKTRACKING), RESOURCES);
+
+    // Assert
+    expect(html).to.not.include('class="machine"');
   });
 
   it("should show the regex, match length, and flags", () => {

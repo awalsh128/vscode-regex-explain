@@ -2,7 +2,8 @@
  * The explanation panel's script, which runs in the webview. It connects the page's elements: it
  * keeps the line-number gutter in step with the input, saves the input and the entries checkbox,
  * asks the extension to match the input as it changes, either as one text or line by line as
- * separate entries, and shows the results with `results.ts`.
+ * separate entries, and shows the results with `results.ts`. It also shows the explanation of a
+ * state machine step when the step is hovered or focused.
  */
 import "@vscode-elements/elements/dist/vscode-checkbox/index.js";
 import "@vscode-elements/elements/dist/vscode-split-layout/index.js";
@@ -101,6 +102,55 @@ if (elements) {
       document
         .querySelector<HTMLAnchorElement>(".regex101")
         ?.setAttribute("href", event.data.regex101Url);
+    }
+  });
+}
+
+const machine = document.querySelector<SVGSVGElement>(".machine-svg");
+if (machine) {
+  showTips(machine);
+}
+
+/**
+ * Shows the explanation of a state machine step, from the tooltip its `aria-describedby` names,
+ * while the step is hovered or focused, and hides it when the step is left or Escape is pressed.
+ *
+ * @param svg The state machine diagram.
+ */
+function showTips(svg: SVGSVGElement): void {
+  let shown: HTMLElement | undefined;
+  const hide = (): void => {
+    if (shown) {
+      shown.hidden = true;
+      shown = undefined;
+    }
+  };
+  const show = (event: Event): void => {
+    const step =
+      event.target instanceof Element ? event.target.closest("[aria-describedby]") : null;
+    const tip = step && document.getElementById(step.getAttribute("aria-describedby") ?? "");
+    if (!step || !tip) {
+      hide();
+      return;
+    }
+    if (tip === shown) {
+      return;
+    }
+    hide();
+    tip.hidden = false;
+    shown = tip;
+    const box = step.getBoundingClientRect();
+    const left = Math.min(box.left, document.documentElement.clientWidth - tip.offsetWidth - 8);
+    tip.style.left = `${Math.max(8, left) + window.scrollX}px`;
+    tip.style.top = `${box.bottom + window.scrollY + 4}px`;
+  };
+  svg.addEventListener("pointerover", show);
+  svg.addEventListener("focusin", show);
+  svg.addEventListener("pointerleave", hide);
+  svg.addEventListener("focusout", hide);
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      hide();
     }
   });
 }
