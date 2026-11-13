@@ -117,14 +117,18 @@ jobs:
     permissions:
       contents: read
     steps:
-      # GHSA-3g3m-2fjr-6pw4: glob 13 bundled inside the npm CLI that semantic-release depends on, in
-      # .github/actions/semantic-release. Overrides can't replace bundled dependencies. The flaw
-      # only affects walks cancelled with an AbortSignal, and none of npm's glob calls pass one.
-      # Remove once npm bundles glob >= 14.0.2.
+      # Advisories in packages bundled inside the npm CLI that semantic-release depends on, in
+      # .github/actions/semantic-release. Overrides can't replace bundled dependencies, and the
+      # library's npm publish runs that npm, so each is allowed only where npm can't trigger it.
+      # Remove each once npm bundles a fixed version.
+      # - GHSA-3g3m-2fjr-6pw4 (glob < 14.0.2): only walks cancelled with an AbortSignal; none of
+      #   npm's glob calls pass one.
+      # - GHSA-g3hv-75wg-m249 (minimatch < 11.0.1): needs attacker-controlled patterns; npm only
+      #   matches this repository's own files and ignore patterns.
       - name: Dependency Review
         uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.9.0
         with:
-          allow-ghsas: GHSA-3g3m-2fjr-6pw4
+          allow-ghsas: GHSA-3g3m-2fjr-6pw4, GHSA-g3hv-75wg-m249
 
   # Runs dependency install scripts and the code under test, so it gets a read-only token that
   # isn't left in .git/config.
