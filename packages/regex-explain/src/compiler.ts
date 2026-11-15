@@ -177,10 +177,10 @@ export const LANGUAGES: Readonly<Record<string, LanguageSpec>> = {
   },
 };
 
-/** VS Code language IDs that have a {@link LanguageSpec}, in table order. */
+/** VS Code language IDs that have a `LanguageSpec`, in table order. */
 export const SUPPORTED_LANGUAGE_IDS: readonly string[] = Object.keys(LANGUAGES);
 
-/** Grammar names used by {@link LANGUAGES}, each once. */
+/** Grammar names used by `LANGUAGES`, each once. */
 export const GRAMMARS: readonly string[] = [
   ...new Set(Object.values(LANGUAGES).map((spec) => spec.grammar)),
 ];
