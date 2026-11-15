@@ -1,7 +1,7 @@
 /**
  * Finds regexes in source text: regex literals, and string literals passed to regex APIs such as
- * Python's `re.compile`. Parsing uses tree-sitter grammars compiled to WebAssembly, and
- * {@link LANGUAGES} lists the queries that pick out regexes in each language.
+ * Python's `re.compile`. Parsing uses tree-sitter grammars compiled to WebAssembly, and `LANGUAGES`
+ * lists the queries that pick out regexes in each language.
  *
  * The runtime comes from `@vscode/tree-sitter-wasm`, an optional peer dependency that is imported
  * only when a {@link RegexFinder} first loads a grammar, so the rest of the library works without
@@ -83,7 +83,7 @@ function joinPath(dir: string, file: string): string {
   return `${dir.replace(/[\\/]+$/, "")}/${file}`;
 }
 
-/** Finds regexes in documents of the languages in {@link LANGUAGES}. */
+/** Finds regexes in documents of the languages in `LANGUAGES`. */
 export class RegexFinder {
   private readonly wasmDir: string;
   private readonly grammars = new Map<string, Promise<Language>>();
@@ -104,7 +104,7 @@ export class RegexFinder {
    *
    * @param languageId A VS Code language ID.
    *
-   * @returns Whether the language has a {@link LanguageSpec}.
+   * @returns Whether the language has a `LanguageSpec`.
    */
   supports(languageId: string): boolean {
     return Object.hasOwn(LANGUAGES, languageId);
@@ -117,7 +117,7 @@ export class RegexFinder {
    * @param languageId The VS Code language ID of the source.
    *
    * @returns The regexes found; none for unsupported languages or for sources longer than
-   *   {@link MAX_SCAN_LENGTH}. Patterns built at run time, such as strings with interpolations, are
+   *   `MAX_SCAN_LENGTH`. Patterns built at run time, such as strings with interpolations, are
    *   skipped.
    */
   async find(source: string, languageId: string): Promise<LocatedRegex[]> {
@@ -151,7 +151,7 @@ export class RegexFinder {
    * Creates a parser and compiles the query for a language, once per language.
    *
    * @param languageId The VS Code language ID.
-   * @param spec The language's entry in {@link LANGUAGES}.
+   * @param spec The language's entry in `LANGUAGES`.
    *
    * @returns The parser and query.
    */
