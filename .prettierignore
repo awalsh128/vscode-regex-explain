@@ -12,3 +12,4 @@ packages/vscode-regex-explain/src/webview/*.html
 # StrykerJS sandboxes and reports.
 .stryker-tmp/
 reports/
+**/docs/api/

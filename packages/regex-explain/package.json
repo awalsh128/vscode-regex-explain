@@ -47,7 +47,8 @@
   },
   "scripts": {
     "build": "rimraf dist && tsc -p tsconfig.build.json && esbuild src/index.ts --bundle --format=esm --platform=neutral --target=es2022 --packages=external --outfile=dist/esm/index.mjs",
-    "prepack": "npm run build"
+    "prepack": "npm run build",
+    "docs:api": "npm run build && typedoc --options typedoc.json"
   },
   "dependencies": {
     "@eslint-community/regexpp": "^4.12.2",

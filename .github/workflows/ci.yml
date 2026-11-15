@@ -231,6 +231,7 @@ jobs:
       actions: read
       contents: write
       issues: write
+      pages: write # The called workflow's deploy-pages job (skipped on staging) needs it declared
       pull-requests: write
       id-token: write
     uses: ./.github/workflows/publish-library.yml

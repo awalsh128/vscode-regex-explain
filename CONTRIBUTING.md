@@ -169,6 +169,12 @@ Every library release is gated by CI on the exact commit being released:
   tag and a GitHub prerelease, but are not published to npm.
 - Official releases publish to npm through trusted publishing, with provenance. npm trusts only
   `publish-library.yml` started on its own, which candidates are not (ci.yml calls it).
+- Every release builds the API docs ([typedoc.json](packages/regex-explain/typedoc.json)) in
+  semantic-release's `prepare` step, through `@semantic-release/exec`, so a docs failure stops the
+  release before it is tagged. Only official releases deploy them to GitHub Pages at
+  `https://awalsh128.com/vscode-regex-explain/`; candidates and runs that release nothing leave the
+  site unchanged. Pages must be set to deploy from GitHub Actions, and the `github-pages`
+  environment restricted to `main`. Preview locally with `npm run docs:api -w regex-explain`.
 - Manual runs first require a successful CI run for the commit. Start one with `dry-run: true` to
   preview the next version without tagging:
 

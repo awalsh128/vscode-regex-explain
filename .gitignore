@@ -27,3 +27,6 @@ agnix-results.sarif
 # StrykerJS sandboxes and reports
 .stryker-tmp/
 reports/
+
+# Generated API docs
+**/docs/api/
