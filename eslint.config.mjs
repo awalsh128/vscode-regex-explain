@@ -13,7 +13,15 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["**/out", "**/dist", ".vscode-test", "**/*.vsix", ".stryker-tmp", "reports"],
+    ignores: [
+      "**/out",
+      "**/dist",
+      "**/docs/api",
+      ".vscode-test",
+      "**/*.vsix",
+      ".stryker-tmp",
+      "reports",
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

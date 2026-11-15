@@ -1,0 +1,12 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["dist/cjs/index.d.ts"],
+  "outputs": [{ "name": "html", "path": "./docs/api" }],
+  "tsconfig": "tsconfig.docs.json",
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeInternal": true,
+  "includeVersion": true,
+  "sort": ["source-order"],
+  "readme": "none"
+}

@@ -66,6 +66,8 @@ explains and its offsets in the pattern, so you can highlight it:
 
 ## API
 
+The full reference is at <https://awalsh128.com/vscode-regex-explain/>.
+
 ### `explainRegex(pattern, flags?, options?)`
 
 Explains `pattern` (without slashes, as passed to `new RegExp()`) compiled with `flags`. Returns an
