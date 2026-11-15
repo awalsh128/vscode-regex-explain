@@ -1,7 +1,12 @@
 /**
- * Where regexes appear in each supported language, as tree-sitter queries over the grammars in
- * `@vscode/tree-sitter-wasm`. Adding a language means adding an entry here; the locator and the
- * bundle script read this table.
+ * Syntax and grammars. `LANGUAGES` lists where regexes appear in each supported language, as
+ * tree-sitter queries over the grammars in `@vscode/tree-sitter-wasm`. `GrammarLoader` loads the
+ * tree-sitter runtime and those grammars, and {@link RegexParser} parses a pattern itself with the
+ * `regex` grammar. To add a language, add an entry to `LANGUAGES`; the locator and the bundle
+ * script read that table.
+ *
+ * The runtime comes from `@vscode/tree-sitter-wasm`, an optional peer dependency that is imported
+ * only when a grammar is first loaded, so the rest of the library works without it.
  *
  * Capture names tell the locator how to read a match:
  *
@@ -15,6 +20,7 @@
  *
  * Captures starting with `_` exist only for predicates.
  */
+import type { Language, Node, Parser } from "@vscode/tree-sitter-wasm";
 
 /** How to find regexes in one language. */
 export interface LanguageSpec {
@@ -180,7 +186,189 @@ export const LANGUAGES: Readonly<Record<string, LanguageSpec>> = {
 /** VS Code language IDs that have a `LanguageSpec`, in table order. */
 export const SUPPORTED_LANGUAGE_IDS: readonly string[] = Object.keys(LANGUAGES);
 
-/** Grammar names used by `LANGUAGES`, each once. */
+/** The grammar that parses regex patterns themselves, for `RegexFinder.syntaxTree`. */
+export const REGEX_GRAMMAR = "regex";
+
+/** Grammar names used by `LANGUAGES` and `REGEX_GRAMMAR`, each once. */
 export const GRAMMARS: readonly string[] = [
-  ...new Set(Object.values(LANGUAGES).map((spec) => spec.grammar)),
+  ...new Set([...Object.values(LANGUAGES).map((spec) => spec.grammar), REGEX_GRAMMAR]),
 ];
+
+/** The tree-sitter module's exports. */
+type TreeSitter = typeof import("@vscode/tree-sitter-wasm");
+
+/**
+ * Loads and initializes the tree-sitter runtime once per process, from the directory of the first
+ * loader to load it successfully.
+ */
+let runtime: Promise<TreeSitter> | undefined;
+
+/**
+ * Loads the tree-sitter runtime and initializes its WebAssembly module.
+ *
+ * @param wasmDir Directory holding `tree-sitter.wasm`.
+ *
+ * @returns The runtime's exports.
+ */
+async function loadRuntime(wasmDir: string): Promise<TreeSitter> {
+  const imported = await import("@vscode/tree-sitter-wasm");
+  // The package is CommonJS: ES module loaders put its exports on `default`.
+  const treeSitter = (imported as { default?: TreeSitter }).default ?? imported;
+  await treeSitter.Parser.init({ locateFile: (file) => joinPath(wasmDir, file) });
+  return treeSitter;
+}
+
+/**
+ * Joins a directory and a file name with `/`, which works for file paths on every platform and for
+ * URLs, so that grammars load under bundlers without Node's `path` module.
+ *
+ * @param dir The directory or URL.
+ * @param file The file name.
+ *
+ * @returns The joined path.
+ */
+function joinPath(dir: string, file: string): string {
+  return `${dir.replace(/[\\/]+$/, "")}/${file}`;
+}
+
+/** Loads the tree-sitter runtime and grammars from a WASM directory, each once. */
+export class GrammarLoader {
+  private readonly wasmDir: string;
+  private readonly grammars = new Map<string, Promise<Language>>();
+
+  /**
+   * Constructs a new GrammarLoader.
+   *
+   * @param wasmDir Directory or URL holding `tree-sitter.wasm` and the `tree-sitter-<grammar>.wasm`
+   *   files, such as the `wasm` directory of `@vscode/tree-sitter-wasm`.
+   */
+  constructor(wasmDir: string) {
+    this.wasmDir = wasmDir;
+  }
+
+  /**
+   * Loads a grammar from the WASM directory, once per grammar.
+   *
+   * @param grammar The grammar name.
+   *
+   * @returns The grammar.
+   */
+  grammar(grammar: string): Promise<Language> {
+    let loaded = this.grammars.get(grammar);
+    if (!loaded) {
+      loaded = this.runtime().then((treeSitter) =>
+        treeSitter.Language.load(joinPath(this.wasmDir, `tree-sitter-${grammar}.wasm`))
+      );
+      // A cache: each grammar's WASM file is loaded once and shared by later calls.
+      // eslint-disable-next-line functional/immutable-data
+      this.grammars.set(grammar, loaded);
+    }
+    return loaded;
+  }
+
+  /**
+   * Loads the tree-sitter runtime, once per process. A failed load is not kept, so a later call,
+   * possibly from a loader with a different directory, tries again.
+   *
+   * @returns The runtime's exports.
+   */
+  runtime(): Promise<TreeSitter> {
+    runtime ??= loadRuntime(this.wasmDir).catch((error: unknown) => {
+      runtime = undefined;
+      throw error;
+    });
+    return runtime;
+  }
+}
+
+/** One node of a pattern's tree-sitter syntax tree. */
+export interface SyntaxTreeNode {
+  /** The grammar's node type, such as `term` or `one_or_more`. */
+  readonly type: string;
+  /** The pattern source the node covers; empty for a missing node. */
+  readonly text: string;
+  /** Offset of `text` in the pattern, inclusive. */
+  readonly start: number;
+  /** Offset of `text` in the pattern, exclusive. */
+  readonly end: number;
+  /** Whether tree-sitter could not parse this part, or inserted it because it was missing. */
+  readonly error: boolean;
+  /** The named child nodes, and any missing ones, in source order. */
+  readonly children: readonly SyntaxTreeNode[];
+}
+
+/** Parses patterns into syntax trees with tree-sitter's `REGEX_GRAMMAR`. */
+export class RegexParser {
+  private readonly grammars: GrammarLoader;
+  private regexParser: Promise<Parser> | undefined;
+
+  /**
+   * Constructs a new RegexParser.
+   *
+   * @param wasmDir Directory or URL holding `tree-sitter.wasm` and `tree-sitter-regex.wasm`, such
+   *   as the `wasm` directory of `@vscode/tree-sitter-wasm`.
+   */
+  constructor(wasmDir: string) {
+    this.grammars = new GrammarLoader(wasmDir);
+  }
+
+  /**
+   * Parses a pattern with tree-sitter's `regex` grammar. The grammar recovers from syntax errors,
+   * so an invalid pattern still gives a tree, with the unparsed parts marked as errors.
+   *
+   * @param pattern The pattern, without slashes.
+   *
+   * @returns The root `pattern` node.
+   */
+  async syntaxTree(pattern: string): Promise<SyntaxTreeNode> {
+    const parser = await this.parser();
+    const tree = parser.parse(pattern);
+    if (!tree) {
+      throw new Error("tree-sitter did not return a syntax tree.");
+    }
+    try {
+      return syntaxNode(tree.rootNode);
+    } finally {
+      tree.delete();
+    }
+  }
+
+  /**
+   * Creates the parser for patterns, once.
+   *
+   * @returns A parser using the `REGEX_GRAMMAR`.
+   */
+  private parser(): Promise<Parser> {
+    // A cache: the parser is built once and shared by later calls.
+    // eslint-disable-next-line functional/immutable-data
+    this.regexParser ??= Promise.all([
+      this.grammars.runtime(),
+      this.grammars.grammar(REGEX_GRAMMAR),
+    ]).then(([treeSitter, language]) => {
+      const parser = new treeSitter.Parser();
+      parser.setLanguage(language);
+      return parser;
+    });
+    return this.regexParser;
+  }
+}
+
+/**
+ * Copies a tree-sitter node and its descendants into plain data, which outlives the tree.
+ *
+ * @param node The node.
+ *
+ * @returns The node, with its named and missing children.
+ */
+function syntaxNode(node: Node): SyntaxTreeNode {
+  return {
+    type: node.type,
+    text: node.text,
+    start: node.startIndex,
+    end: node.endIndex,
+    error: node.isError || node.isMissing,
+    children: node.children
+      .filter((child): child is Node => !!child && (child.isNamed || child.isMissing))
+      .map(syntaxNode),
+  };
+}
