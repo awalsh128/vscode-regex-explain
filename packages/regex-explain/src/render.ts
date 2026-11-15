@@ -1,3 +1,4 @@
+import type { SyntaxTreeNode } from "./compiler";
 import { ExplainResult, ExplanationNode, RegexExplanation, RegexSource } from "./explainer";
 import { code, splitCodeSpans, TextPart } from "./text";
 
@@ -247,6 +248,226 @@ export class ExplanationRenderer {
       "\n"
     );
   }
+}
+
+/** Font size of the syntax tree diagram's labels, in pixels. */
+const DIAGRAM_FONT_SIZE = 12;
+
+/** Advance of one monospace character at {@link DIAGRAM_FONT_SIZE}, in pixels. */
+const DIAGRAM_CHAR_WIDTH = 7.2;
+
+/** Space between a node's label and its border, in pixels. */
+const DIAGRAM_PADDING = 8;
+
+/** Height of a node's box, which holds the node type over its source text, in pixels. */
+const DIAGRAM_NODE_HEIGHT = 36;
+
+/** Baselines of the node type and the source text, from the top of a node's box, in pixels. */
+const DIAGRAM_BASELINES = { type: 14, text: 29 } as const;
+
+/** Space between neighboring subtrees, in pixels. */
+const DIAGRAM_SIBLING_GAP = 12;
+
+/** Space between a node's box and its children's boxes, in pixels. */
+const DIAGRAM_LEVEL_GAP = 28;
+
+/** Space around the whole diagram, in pixels. */
+const DIAGRAM_MARGIN = 4;
+
+/** The most characters of a node's source text shown in its box; its tooltip has all of it. */
+const DIAGRAM_MAX_LABEL = 24;
+
+/** A node of the diagram with its box placed. */
+interface PlacedNode {
+  /** The syntax tree node. */
+  readonly node: SyntaxTreeNode;
+  /** The source text shown in the box, shortened to {@link DIAGRAM_MAX_LABEL} characters. */
+  readonly label: string;
+  /** Left edge of the box. */
+  readonly x: number;
+  /** Top edge of the box. */
+  readonly y: number;
+  /** Width of the box. */
+  readonly width: number;
+}
+
+/** A line from a node's box to one of its children's boxes. */
+interface DiagramEdge {
+  /** The parent's bottom center. */
+  readonly x1: number;
+  /** The parent's bottom center. */
+  readonly y1: number;
+  /** The child's top center. */
+  readonly x2: number;
+  /** The child's top center. */
+  readonly y2: number;
+}
+
+/** A laid-out subtree, with its left edge at 0. */
+interface SubtreeLayout {
+  /** Width of the subtree. */
+  readonly width: number;
+  /** Horizontal center of the subtree's root box. */
+  readonly center: number;
+  /** The root and its descendants, placed. */
+  readonly nodes: readonly PlacedNode[];
+  /** The lines between them. */
+  readonly edges: readonly DiagramEdge[];
+}
+
+/**
+ * Draws a pattern's syntax tree from `RegexFinder.syntaxTree` as an SVG image: a box per node, with
+ * the node type over its source text, and each node centered over its children. Colors are
+ * `currentColor`, so the image takes the color of the surrounding text, and its elements have
+ * classes (`edge`, `node`, `error`, `type`, `text`) for styling. Each box has a `<title>` tooltip
+ * with the node's full source text.
+ *
+ * @param tree The root node.
+ *
+ * @returns The `<svg>` element.
+ */
+export function syntaxTreeSvg(tree: SyntaxTreeNode): string {
+  const layout = layoutSubtree(tree, 0);
+  const width = layout.width + 2 * DIAGRAM_MARGIN;
+  const height =
+    Math.max(...layout.nodes.map((placed) => placed.y)) + DIAGRAM_NODE_HEIGHT + 2 * DIAGRAM_MARGIN;
+  const edges = layout.edges.map(
+    (e) =>
+      `<line class="edge" x1="${num(e.x1)}" y1="${num(e.y1)}" x2="${num(e.x2)}" y2="${num(e.y2)}" stroke="currentColor"/>`
+  );
+  const nodes = layout.nodes.map((placed) => {
+    const { node, label, x, y, width: boxWidth } = placed;
+    const center = num(x + boxWidth / 2);
+    const tooltip = node.text === "" ? node.type : `${node.type}: ${node.text}`;
+    const text =
+      label === ""
+        ? ""
+        : `<text class="text" x="${center}" y="${num(y + DIAGRAM_BASELINES.text)}" text-anchor="middle" fill="currentColor">${escapeXml(label)}</text>`;
+    return (
+      `<g class="node${node.error ? " error" : ""}"><title>${escapeXml(tooltip)}</title>` +
+      `<rect x="${num(x)}" y="${num(y)}" width="${num(boxWidth)}" height="${DIAGRAM_NODE_HEIGHT}" rx="4" fill="none" stroke="currentColor"/>` +
+      `<text class="type" x="${center}" y="${num(y + DIAGRAM_BASELINES.type)}" text-anchor="middle" fill="currentColor">${escapeXml(node.type)}</text>` +
+      `${text}</g>`
+    );
+  });
+  return [
+    `<svg xmlns="http://www.w3.org/2000/svg" class="syntax-tree" width="${num(width)}" height="${num(height)}" ` +
+      `viewBox="0 0 ${num(width)} ${num(height)}" font-family="monospace" font-size="${DIAGRAM_FONT_SIZE}" ` +
+      `role="img" aria-label="${escapeXml(`Syntax tree of ${tree.text}`)}">`,
+    `<g transform="translate(${DIAGRAM_MARGIN} ${DIAGRAM_MARGIN})">`,
+    ...edges,
+    ...nodes,
+    "</g>",
+    "</svg>",
+  ].join("\n");
+}
+
+/**
+ * Lays out a subtree with its children side by side under it, each subtree as wide as its widest
+ * level so that subtrees never overlap.
+ *
+ * @param node The subtree's root.
+ * @param depth The root's depth, where the tree's root is 0.
+ *
+ * @returns The layout, with its left edge at 0.
+ */
+function layoutSubtree(node: SyntaxTreeNode, depth: number): SubtreeLayout {
+  const label = shorten(node.text);
+  const boxWidth =
+    Math.max(node.type.length, [...label].length) * DIAGRAM_CHAR_WIDTH + 2 * DIAGRAM_PADDING;
+  const children = node.children.map((child) => layoutSubtree(child, depth + 1));
+  const childrenWidth =
+    children.reduce((sum, child) => sum + child.width, 0) +
+    DIAGRAM_SIBLING_GAP * Math.max(0, children.length - 1);
+  const width = Math.max(boxWidth, childrenWidth);
+  const lefts = children.map(
+    (_, i) =>
+      (width - childrenWidth) / 2 +
+      children.slice(0, i).reduce((sum, child) => sum + child.width + DIAGRAM_SIBLING_GAP, 0)
+  );
+  const placed = children.map((child, i) => shiftSubtree(child, lefts[i]));
+  const first = placed.at(0);
+  const last = placed.at(-1);
+  // A parent narrower than its children sits over them, but never past the subtree's edges.
+  const center =
+    first && last
+      ? Math.min(Math.max((first.center + last.center) / 2, boxWidth / 2), width - boxWidth / 2)
+      : width / 2;
+  const y = depth * (DIAGRAM_NODE_HEIGHT + DIAGRAM_LEVEL_GAP);
+  return {
+    width,
+    center,
+    nodes: [
+      { node, label, x: center - boxWidth / 2, y, width: boxWidth },
+      ...placed.flatMap((child) => child.nodes),
+    ],
+    edges: [
+      ...placed.map((child) => ({
+        x1: center,
+        y1: y + DIAGRAM_NODE_HEIGHT,
+        x2: child.center,
+        y2: y + DIAGRAM_NODE_HEIGHT + DIAGRAM_LEVEL_GAP,
+      })),
+      ...placed.flatMap((child) => child.edges),
+    ],
+  };
+}
+
+/**
+ * Moves a laid-out subtree to the right.
+ *
+ * @param layout The subtree.
+ * @param dx The distance to move it, in pixels.
+ *
+ * @returns The moved subtree.
+ */
+function shiftSubtree(layout: SubtreeLayout, dx: number): SubtreeLayout {
+  return {
+    width: layout.width,
+    center: layout.center + dx,
+    nodes: layout.nodes.map((placed) => ({ ...placed, x: placed.x + dx })),
+    edges: layout.edges.map((e) => ({ ...e, x1: e.x1 + dx, x2: e.x2 + dx })),
+  };
+}
+
+/**
+ * Shortens text to {@link DIAGRAM_MAX_LABEL} characters, counting code points.
+ *
+ * @param text The text.
+ *
+ * @returns The text, or its start followed by an ellipsis.
+ */
+function shorten(text: string): string {
+  const chars = [...text];
+  return chars.length > DIAGRAM_MAX_LABEL
+    ? `${chars.slice(0, DIAGRAM_MAX_LABEL - 1).join("")}…`
+    : text;
+}
+
+/**
+ * Formats a coordinate with at most one decimal place.
+ *
+ * @param n The coordinate.
+ *
+ * @returns The number as SVG attribute text.
+ */
+function num(n: number): string {
+  return String(Math.round(n * 10) / 10);
+}
+
+/**
+ * Escapes text for XML content and quoted attributes.
+ *
+ * @param text The text.
+ *
+ * @returns The escaped text.
+ */
+function escapeXml(text: string): string {
+  return text.replace(
+    /[&<>"']/g,
+    (char) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char] ?? char
+  );
 }
 
 /**

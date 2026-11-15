@@ -1,14 +1,10 @@
 /**
  * Finds regexes in source text: regex literals, and string literals passed to regex APIs such as
- * Python's `re.compile`. Parsing uses tree-sitter grammars compiled to WebAssembly, and `LANGUAGES`
- * lists the queries that pick out regexes in each language.
- *
- * The runtime comes from `@vscode/tree-sitter-wasm`, an optional peer dependency that is imported
- * only when a {@link RegexFinder} first loads a grammar, so the rest of the library works without
- * it.
+ * Python's `re.compile`. The source is parsed with the grammars that `compiler.ts` loads, and
+ * `LANGUAGES` lists the queries that pick out regexes in each language.
  */
-import type { Language, Node, Parser, Query, QueryCapture, Range } from "@vscode/tree-sitter-wasm";
-import { LANGUAGES, LanguageSpec } from "./compiler";
+import type { Node, Parser, Query, QueryCapture, Range } from "@vscode/tree-sitter-wasm";
+import { GrammarLoader, LANGUAGES, LanguageSpec } from "./compiler";
 import type { RegexSource } from "./explainer";
 import { decodeEscape, singleQuotedValue, splitDelimitedPattern, translateFlags } from "./strings";
 
@@ -46,47 +42,9 @@ const DELIMITER_TYPE = /(?:_start|_end)$/;
 /** `<script>` blocks of single-file components, with the code in group 1. */
 const SCRIPT_BLOCK = /<script\b[^>]*>([\s\S]*?)<\/script\s*>/gi;
 
-/** The tree-sitter module's exports. */
-type TreeSitter = typeof import("@vscode/tree-sitter-wasm");
-
-/**
- * Loads and initializes the tree-sitter runtime once per process, from the directory of the first
- * finder to load it successfully.
- */
-let runtime: Promise<TreeSitter> | undefined;
-
-/**
- * Loads the tree-sitter runtime and initializes its WebAssembly module.
- *
- * @param wasmDir Directory holding `tree-sitter.wasm`.
- *
- * @returns The runtime's exports.
- */
-async function loadRuntime(wasmDir: string): Promise<TreeSitter> {
-  const imported = await import("@vscode/tree-sitter-wasm");
-  // The package is CommonJS: ES module loaders put its exports on `default`.
-  const treeSitter = (imported as { default?: TreeSitter }).default ?? imported;
-  await treeSitter.Parser.init({ locateFile: (file) => joinPath(wasmDir, file) });
-  return treeSitter;
-}
-
-/**
- * Joins a directory and a file name with `/`, which works for file paths on every platform and for
- * URLs, so that the finder runs under bundlers without Node's `path` module.
- *
- * @param dir The directory or URL.
- * @param file The file name.
- *
- * @returns The joined path.
- */
-function joinPath(dir: string, file: string): string {
-  return `${dir.replace(/[\\/]+$/, "")}/${file}`;
-}
-
 /** Finds regexes in documents of the languages in `LANGUAGES`. */
 export class RegexFinder {
-  private readonly wasmDir: string;
-  private readonly grammars = new Map<string, Promise<Language>>();
+  private readonly grammars: GrammarLoader;
   private readonly languages = new Map<string, Promise<LoadedLanguage>>();
 
   /**
@@ -96,7 +54,7 @@ export class RegexFinder {
    *   files, such as the `wasm` directory of `@vscode/tree-sitter-wasm`.
    */
   constructor(wasmDir: string) {
-    this.wasmDir = wasmDir;
+    this.grammars = new GrammarLoader(wasmDir);
   }
 
   /**
@@ -158,7 +116,7 @@ export class RegexFinder {
   private language(languageId: string, spec: LanguageSpec): Promise<LoadedLanguage> {
     let loaded = this.languages.get(languageId);
     if (!loaded) {
-      loaded = Promise.all([this.runtime(), this.grammar(spec.grammar)]).then(
+      loaded = Promise.all([this.grammars.runtime(), this.grammars.grammar(spec.grammar)]).then(
         ([treeSitter, language]) => {
           const parser = new treeSitter.Parser();
           parser.setLanguage(language);
@@ -170,40 +128,6 @@ export class RegexFinder {
       this.languages.set(languageId, loaded);
     }
     return loaded;
-  }
-
-  /**
-   * Loads a grammar from the WASM directory, once per grammar.
-   *
-   * @param grammar The grammar name.
-   *
-   * @returns The grammar.
-   */
-  private grammar(grammar: string): Promise<Language> {
-    let loaded = this.grammars.get(grammar);
-    if (!loaded) {
-      loaded = this.runtime().then((treeSitter) =>
-        treeSitter.Language.load(joinPath(this.wasmDir, `tree-sitter-${grammar}.wasm`))
-      );
-      // A cache: each grammar's WASM file is loaded once and shared by later calls.
-      // eslint-disable-next-line functional/immutable-data
-      this.grammars.set(grammar, loaded);
-    }
-    return loaded;
-  }
-
-  /**
-   * Loads the tree-sitter runtime, once per process. A failed load is not kept, so a later call,
-   * possibly from a finder with a different directory, tries again.
-   *
-   * @returns The runtime's exports.
-   */
-  private runtime(): Promise<TreeSitter> {
-    runtime ??= loadRuntime(this.wasmDir).catch((error: unknown) => {
-      runtime = undefined;
-      throw error;
-    });
-    return runtime;
   }
 }
 

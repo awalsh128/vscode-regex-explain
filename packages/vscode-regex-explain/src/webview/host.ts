@@ -1,14 +1,22 @@
 /**
  * The extension-host side of the explanation panel: it opens and reuses the webview panel, renders
- * its page with {@link PanelTemplate}, and answers the page's match requests through a
- * {@link RegexMatcher}. The page's own script is `main.ts`, which runs in the webview.
+ * its page with {@link PanelTemplate}, draws the pattern's syntax tree once the regex stops
+ * changing, and answers the page's match requests through a {@link RegexMatcher}. The page's own
+ * script is `main.ts`, which runs in the webview.
  */
 import { randomBytes } from "crypto";
-import { describeMatches, explainRegex, regex101Url, RegexSource } from "regex-explain";
+import {
+  describeMatches,
+  explainRegex,
+  regex101Url,
+  RegexParser,
+  RegexSource,
+  syntaxTreeSvg,
+} from "regex-explain";
 import * as vscode from "vscode";
 import { getConfig } from "../configuration";
 import { RegexMatcher } from "../matcher";
-import { PANEL_TITLE, PanelTemplate } from "./panel";
+import { PANEL_TITLE, PanelSyntaxTree, PanelTemplate } from "./panel";
 import { isMatchMessage, MatchesMessage } from "./protocol";
 
 /** View type of the explanation panel. */
@@ -18,6 +26,12 @@ export const VIEW_TYPE = "regexExplain.explanation";
 const MATCH_LIMIT = 1000;
 
 /**
+ * Wait after the followed regex stops changing before drawing its syntax tree, in milliseconds, so
+ * that typing in a regex does not redraw the tree at every key press.
+ */
+export const SYNTAX_TREE_DELAY_MS = 2000;
+
+/**
  * Shows explanations in one webview panel beside the editor: the explanation on top, and below it a
  * text area whose matches are listed with their line numbers.
  */
@@ -25,10 +39,12 @@ export class ExplanationPanel implements vscode.Disposable {
   private readonly extensionUri: vscode.Uri;
   private readonly matcher: RegexMatcher;
   private readonly template: PanelTemplate;
+  private readonly parser: RegexParser;
   private panel: vscode.WebviewPanel | undefined;
   private input: RegexSource | undefined;
   /** Cancels the match request in progress, which a newer request or closing the panel replaces. */
   private pending: AbortController | undefined;
+  private syntaxTreeTimer: ReturnType<typeof setTimeout> | undefined;
 
   /**
    * Constructs a new ExplanationPanel.
@@ -36,11 +52,18 @@ export class ExplanationPanel implements vscode.Disposable {
    * @param extensionUri The extension's directory, whose `dist/` holds the panel script and styles.
    * @param matcher Runs the regex over the text in the input pane.
    * @param template Renders the page.
+   * @param parser Parses the regex into the syntax tree the page draws.
    */
-  constructor(extensionUri: vscode.Uri, matcher: RegexMatcher, template: PanelTemplate) {
+  constructor(
+    extensionUri: vscode.Uri,
+    matcher: RegexMatcher,
+    template: PanelTemplate,
+    parser: RegexParser
+  ) {
     this.extensionUri = extensionUri;
     this.matcher = matcher;
     this.template = template;
+    this.parser = parser;
   }
 
   /**
@@ -53,13 +76,14 @@ export class ExplanationPanel implements vscode.Disposable {
   show(input: RegexSource, scope?: vscode.ConfigurationScope): void {
     const panel = this.panel ?? this.create();
     this.render(panel, input, scope);
+    this.scheduleSyntaxTree(panel, input, scope, 0);
     panel.reveal(vscode.ViewColumn.Beside, true);
   }
 
   /**
    * Shows a regex in the open panel when it differs from the one shown, as the user points at
    * another regex or edits this one. A closed panel stays closed, and the panel stays where the
-   * user put it.
+   * user put it. The syntax tree is drawn {@link SYNTAX_TREE_DELAY_MS} after the last change.
    *
    * @param input The regex.
    * @param scope The document whose language and folder settings apply, if any.
@@ -72,6 +96,7 @@ export class ExplanationPanel implements vscode.Disposable {
       return false;
     }
     this.render(this.panel, input, scope);
+    this.scheduleSyntaxTree(this.panel, input, scope, SYNTAX_TREE_DELAY_MS);
     return true;
   }
 
@@ -87,26 +112,76 @@ export class ExplanationPanel implements vscode.Disposable {
    * @param panel The panel.
    * @param input The regex.
    * @param scope The document whose language and folder settings apply, if any.
+   * @param syntaxTree The regex's syntax tree diagram, once drawn.
    */
   private render(
     panel: vscode.WebviewPanel,
     input: RegexSource,
-    scope?: vscode.ConfigurationScope
+    scope?: vscode.ConfigurationScope,
+    syntaxTree?: PanelSyntaxTree
   ): void {
     this.input = input;
     const webview = panel.webview;
     const { checkBacktracking } = getConfig(scope);
     const result = explainRegex(input.pattern, input.flags, { checkBacktracking });
-    webview.html = this.template.render(result, {
-      cspSource: webview.cspSource,
-      nonce: randomBytes(16).toString("base64"),
-      scriptUri: webview
-        .asWebviewUri(vscode.Uri.joinPath(this.extensionUri, "dist", "webview.js"))
-        .toString(),
-      styleUri: webview
-        .asWebviewUri(vscode.Uri.joinPath(this.extensionUri, "dist", "panel.css"))
-        .toString(),
-    });
+    webview.html = this.template.render(
+      result,
+      {
+        cspSource: webview.cspSource,
+        nonce: randomBytes(16).toString("base64"),
+        scriptUri: webview
+          .asWebviewUri(vscode.Uri.joinPath(this.extensionUri, "dist", "webview.js"))
+          .toString(),
+        styleUri: webview
+          .asWebviewUri(vscode.Uri.joinPath(this.extensionUri, "dist", "panel.css"))
+          .toString(),
+      },
+      syntaxTree
+    );
+  }
+
+  /**
+   * Draws the regex's syntax tree after a delay, replacing any drawing still waiting, so that only
+   * the regex shown once changes settle is drawn.
+   *
+   * @param panel The panel.
+   * @param input The regex.
+   * @param scope The document whose language and folder settings apply, if any.
+   * @param delayMs How long to wait, in milliseconds.
+   */
+  private scheduleSyntaxTree(
+    panel: vscode.WebviewPanel,
+    input: RegexSource,
+    scope: vscode.ConfigurationScope | undefined,
+    delayMs: number
+  ): void {
+    clearTimeout(this.syntaxTreeTimer);
+    this.syntaxTreeTimer = setTimeout(() => void this.drawSyntaxTree(panel, input, scope), delayMs);
+  }
+
+  /**
+   * Parses the regex and renders the page again with its syntax tree, unless the panel has closed
+   * or moved on to another regex meanwhile. The page is rendered rather than sent the drawing, so
+   * that it keeps the drawing when VS Code reloads a hidden panel.
+   *
+   * @param panel The panel.
+   * @param input The regex.
+   * @param scope The document whose language and folder settings apply, if any.
+   */
+  private async drawSyntaxTree(
+    panel: vscode.WebviewPanel,
+    input: RegexSource,
+    scope: vscode.ConfigurationScope | undefined
+  ): Promise<void> {
+    let syntaxTree: PanelSyntaxTree;
+    try {
+      syntaxTree = { svg: syntaxTreeSvg(await this.parser.syntaxTree(input.pattern)) };
+    } catch (error) {
+      syntaxTree = { error: error instanceof Error ? error.message : String(error) };
+    }
+    if (this.panel === panel && this.input === input) {
+      this.render(panel, input, scope, syntaxTree);
+    }
   }
 
   /**
@@ -151,6 +226,7 @@ export class ExplanationPanel implements vscode.Disposable {
 
   /** Closes the panel. */
   dispose(): void {
+    clearTimeout(this.syntaxTreeTimer);
     this.panel?.dispose();
   }
 
@@ -177,6 +253,7 @@ export class ExplanationPanel implements vscode.Disposable {
     });
     panel.onDidDispose(() => {
       this.pending?.abort();
+      clearTimeout(this.syntaxTreeTimer);
       this.panel = undefined;
       this.input = undefined;
     });

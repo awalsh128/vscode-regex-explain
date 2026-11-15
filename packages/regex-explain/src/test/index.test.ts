@@ -12,6 +12,7 @@ describe("index", () => {
       "ExplanationRenderer",
       "GRAMMARS",
       "RegexFinder",
+      "RegexParser",
       "SUPPORTED_LANGUAGE_IDS",
       "describeCount",
       "describeMatches",
@@ -22,6 +23,7 @@ describe("index", () => {
       "parseRegexInput",
       "regex101Url",
       "stateMachine",
+      "syntaxTreeSvg",
     ]);
   });
 });

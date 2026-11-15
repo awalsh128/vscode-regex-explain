@@ -18,15 +18,18 @@
 │  matcher.ts      RegexMatcher: findMatches() in a worker thread, timed          │
 │  configuration.ts  getConfig(): the only settings reader                        │
 └──────────────────────────────────────┬──────────────────────────────────────────┘
-                                       │ explainRegex(), ExplanationRenderer, stateMachine(), RegexFinder, findMatches
+                                       │ explainRegex(), ExplanationRenderer, stateMachine(), RegexFinder, RegexParser, findMatches
 ┌──────────────────────────── Library (packages/regex-explain) ───────────────────┐
 │  index.ts        public API                                                     │
 │  explainer.ts    regexpp AST ─> ExplanationNode tree, length, warnings          │
-│  render.ts       ExplanationRenderer: Markdown, plain text, or model            │
+│  render.ts       ExplanationRenderer: Markdown, plain text, or model;           │
+│                  syntaxTreeSvg(): tree-sitter syntax tree ─> SVG                │
 │  machine.ts      stateMachine(): regexpp AST ─> transitions, choices, repeats   │
 │  text.ts         wording helpers, code span splitting                           │
 │  locator.ts      RegexFinder: tree-sitter parse + query ─> LocatedRegex[]       │
-│  compiler.ts     LANGUAGES: grammar and query per language ID                   │
+│  compiler.ts     LANGUAGES: grammar and query per language ID;                  │
+│                  GrammarLoader: tree-sitter runtime and grammars;               │
+│                  RegexParser: pattern ─> SyntaxTreeNode (regex grammar)         │
 │  strings.ts      string escapes, PCRE delimiters, flag translation              │
 │  matches.ts      findMatches(): RegExp over text ─> matches with lines          │
 │  extlinks.ts     regex101Url(): links that open a regex in external tools       │
@@ -48,6 +51,12 @@ The command, or that link, calls `ExplanationPanel.show`, which sets the webview
 `{ type: "matches", id, model, regex101Url }`, where `regex101Url` opens the regex and the text on
 regex101.com and `model` is the library's `describeMatches` of the response and holds the worded
 summary and matches. The script ignores replies to superseded ids.
+
+The page first renders without the syntax tree. `show` draws it at once and `follow` after
+`DIAGRAM_DELAY_MS` (2 s) with no newer `follow`: `ExplanationPanel` parses the pattern with
+`RegexParser.syntaxTree`, draws it with `syntaxTreeSvg`, and renders the page again with the SVG,
+unless the panel has closed or shows another regex by then. It renders the page rather than posting
+the SVG, because VS Code reloads a hidden panel from its HTML, which would drop a posted drawing.
 
 ## Repository Layout
 
@@ -79,7 +88,7 @@ tsconfig.json          Build entry point referencing the packages and scripts
 | `packages/vscode-regex-explain/dist/matchWorker.js`        | `bundle.mjs`: esbuild from `matcher.ts`, with `findMatches` | `RegexMatcher`'s worker                     |
 | `packages/vscode-regex-explain/dist/webview.js`            | `bundle.mjs`: esbuild for the browser, with vscode-elements | The panel script                            |
 | `packages/vscode-regex-explain/dist/panel.*`, `parts.html` | `bundle.mjs`: copies from `src/webview/`                    | `PanelTemplate`, the page                   |
-| `packages/vscode-regex-explain/dist/*.wasm`                | `bundle.mjs`: copies the runtime and `GRAMMARS`             | Loaded by `RegexFinder`                     |
+| `packages/vscode-regex-explain/dist/*.wasm`                | `bundle.mjs`: copies the runtime and `GRAMMARS`             | Loaded by `GrammarLoader`                   |
 | `out/scripts/`                                             | `tsc -b`                                                    | The extension's `release.config.cjs` plugin |
 
 For type checking and bundling, the extension's two `tsconfig.json` files map `regex-explain` to the
@@ -138,6 +147,10 @@ literal runs as `explainSequence` does, so each transition takes its description
 explanation node with the same source span; an element without one, such as the `\d` in `\d+`, takes
 its quantifier's.
 
+`syntaxTreeSvg` lays out a `SyntaxTreeNode` tree top-down: each subtree is as wide as the wider of
+its root's box and its children side by side, and a root sits centered over its children. Box widths
+assume a monospace font at 12 px, since the library cannot measure text.
+
 ### `text.ts`
 
 `code()` builds code spans that survive backticks, `describeCodePoint()` names characters (named
@@ -146,15 +159,12 @@ controls, `U+XXXX` for invisible ones), and `lowerFirst()` and `withArticle()` a
 
 ### `locator.ts`
 
-`RegexFinder` imports `@vscode/tree-sitter-wasm` on first use, so the rest of the library works
-without that optional peer dependency, skips sources over `MAX_SCAN_LENGTH` characters, and loads
-each grammar once from a WASM directory or URL (`dist/` in the extension, the installed package in
-tests). The runtime is shared by every finder in the process; a failed load is not cached, so the
-next `find` tries again. Paths are joined with `/` rather than Node's `path`, so the module also
-works in bundlers. `find` parses the text, runs the language's query, and reads each match by its
-capture names: regex literals keep their source text, string literals are decoded, and strings with
-interpolations are skipped. For `scriptBlocks` languages (Vue, Svelte) only `<script>` blocks are
-parsed, through `includedRanges`. Offsets are UTF-16 code units, as VS Code expects.
+`RegexFinder` loads its grammars through `compiler.ts`'s `GrammarLoader`, builds one parser and
+query per language, and skips sources over `MAX_SCAN_LENGTH` characters. `find` parses the text,
+runs the language's query, and reads each match by its capture names: regex literals keep their
+source text, string literals are decoded, and strings with interpolations are skipped. For
+`scriptBlocks` languages (Vue, Svelte) only `<script>` blocks are parsed, through `includedRanges`.
+Offsets are UTF-16 code units, as VS Code expects.
 
 ### `compiler.ts`
 
@@ -164,6 +174,15 @@ comment defines the capture names. To add a language, add an entry and a case to
 The extension's `bundle.mjs` copies the grammar, and `SUPPORTED_LANGUAGE_IDS` sets the
 `hover.languages` default, which must also be added to the manifest's default and `enum`, and to the
 extension README's language table and settings default.
+
+The module also owns loading syntax. `GrammarLoader` imports `@vscode/tree-sitter-wasm` on first
+use, so the rest of the library works without that optional peer dependency, and loads each grammar
+once from a WASM directory or URL (`dist/` in the extension, the installed package in tests). The
+runtime is initialized once per process and shared by every loader; a failed load is not cached, so
+the next call tries again. Paths are joined with `/` rather than Node's `path`, so the module also
+works in bundlers. `RegexParser.syntaxTree` parses a pattern with the `regex` grammar
+(`REGEX_GRAMMAR`, which `GRAMMARS` includes so the bundle copies it) and copies the named and
+missing nodes into plain `SyntaxTreeNode` data, so the tree-sitter tree can be freed.
 
 ### `strings.ts`
 
@@ -206,17 +225,20 @@ adds Node types; `npm run test:unit` runs them with `tsx` in a happy-dom window 
 - `webview/host.ts`: `ExplanationPanel` keeps one webview panel beside the editor, reused for each
   regex, and answers the page's match requests with `RegexMatcher`, up to `MATCH_LIMIT` matches. A
   new request aborts the one in progress, whose reply the page would ignore, so typing against a
-  slow pattern runs one worker at a time. Its page allows only its own nonce-tagged script and files
-  from `dist/`.
+  slow pattern runs one worker at a time. It also parses the shown pattern with a `RegexParser` and
+  draws the syntax tree `SYNTAX_TREE_DELAY_MS` after the regex stops changing, then renders the page
+  again with the tree. Its page allows only its own nonce-tagged script and files from `dist/`.
 - `webview/panel.ts`: `PanelTemplate` reads `panel.html` and the `parts.html` partial once, then
   renders `ExplanationRenderer.model()` with Mustache, adding each row's indent, the error's caret
   line, highlighted HTML for the literal, each row's `raw`, and a warning's fix, and the laid-out
   state machine. Every other value is escaped with `escape-html`; the template inserts the
-  highlighted HTML unescaped, because Shiki has already escaped its text. The page also holds the
-  `match-item` and `match-group` `<template>` elements that the panel script clones. It does not
-  import `vscode`, so it is tested in Node, reading the templates from `src/webview/`; the extension
-  reads the copies in `dist/`. Markup belongs in the templates, not in TypeScript strings; Prettier
-  skips the templates because its HTML formatter would rewrap Mustache tags.
+  highlighted HTML and the syntax tree SVG unescaped, because Shiki and `syntaxTreeSvg` have already
+  escaped their text. Without a `PanelSyntaxTree`, the page says the tree is drawn when the regex
+  stops changing. The page also holds the `match-item` and `match-group` `<template>` elements that
+  the panel script clones. It does not import `vscode`, so it is tested in Node, reading the
+  templates from `src/webview/`; the extension reads the copies in `dist/`. Markup belongs in the
+  templates, not in TypeScript strings; Prettier skips the templates because its HTML formatter
+  would rewrap Mustache tags.
 - `webview/highlight.ts`: `highlight()` tokenizes a pattern with Shiki's TextMate `regexp` grammar,
   through the synchronous core and its JavaScript regex engine, so rendering needs neither `await`
   nor WebAssembly. It runs in the extension host and cannot see the webview's theme, so each token
