@@ -1,8 +1,7 @@
 name: CI
 
 on:
-  # staging: gates library release candidates, and gives the promote workflow a result for
-  # staging's exact commit. main: reports the status of each promotion (README badge).
+  # staging: gives the promote workflow a result for staging's exact commit. main: reports the status of each promotion (README badge).
   push:
     branches: [main, staging]
   pull_request:
@@ -14,7 +13,7 @@ on:
 permissions: {}
 
 # A new push to a pull request cancels its older run. Other runs each get their own group, so a
-# staging push is never cancelled or left pending: promotion and release candidates need its result.
+# staging push is never cancelled or left pending: promotion needs its result.
 concurrency:
   group:
     ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
@@ -222,16 +221,3 @@ jobs:
           else
             npm run test:integration
           fi
-
-  # Library release candidates are only cut from staging commits that pass CI.
-  release-candidate:
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/staging' }}
-    needs: [audit, test, integration]
-    permissions:
-      actions: read
-      contents: write
-      issues: write
-      pages: write # The called workflow's deploy-pages job (skipped on staging) needs it declared
-      pull-requests: write
-      id-token: write
-    uses: ./.github/workflows/publish-library.yml

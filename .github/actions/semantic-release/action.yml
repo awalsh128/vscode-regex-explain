@@ -13,19 +13,10 @@ inputs:
     description: "Octo STS trust policy that issues the token for pushing tags."
     required: false
     default: "release"
-  args:
-    description: "Extra semantic-release arguments, such as --extends semantic-release-monorepo."
-    required: false
-    default: ""
   dry-run:
     description: "Preview the next version and release notes without tagging or publishing."
     required: false
     default: "false"
-
-outputs:
-  version:
-    description: "The released version, or empty when nothing was released or on a dry run."
-    value: ${{ steps.release.outputs.version }}
 
 runs:
   using: "composite"
@@ -46,9 +37,7 @@ runs:
         scope: ${{ github.repository }}
         identity: ${{ inputs.identity }}
 
-    # The exec plugin in release.config.cjs writes `version` to GITHUB_OUTPUT when it releases.
     - name: Run semantic-release
-      id: release
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       env:
@@ -56,11 +45,10 @@ runs:
         # GITHUB_TOKEN.
         GIT_CREDENTIALS: x-access-token:${{ steps.octo-sts.outputs.token }}
         GITHUB_TOKEN: ${{ github.token }}
-        ARGS: ${{ inputs.args }}
         DRY_RUN: ${{ inputs.dry-run }}
       run: |
         set -euo pipefail
-        read -ra args <<< "$ARGS"
+        args=()
         if [[ "$DRY_RUN" == "true" ]]; then
           args+=(--dry-run)
         fi
