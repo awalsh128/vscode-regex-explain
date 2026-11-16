@@ -80,7 +80,7 @@ the same `vX.Y.Z` tag:
 | What                      | Workflow                                                         | Published to                                     |
 | ------------------------- | ---------------------------------------------------------------- | ------------------------------------------------ |
 | Regex Explain for VS Code | [publish-extension.yml](.github/workflows/publish-extension.yml) | Marketplace, Open VSX, GitHub release (`vX.Y.Z`) |
-| `regex-explain`           | [publish-library.yml](.github/workflows/publish-library.yml)     | npm, at the extension's version, on releases     |
+| `regex-explain`           | [publish-library.yml](.github/workflows/publish-library.yml)     | npm, at the extension's version                  |
 
 The configuration is
 [packages/vscode-regex-explain/release.config.cjs](packages/vscode-regex-explain/release.config.cjs).
@@ -166,9 +166,10 @@ The library is published by [publish-library.yml](.github/workflows/publish-libr
 [Publishing the Extension](#publishing-the-extension) starts after a release, with the release's
 tag. It never picks a version of its own.
 
-- Only releases are published to npm (even minor versions, such as `1.4.0`). The extension's
-  pre-releases (odd minors) are not, so npm never lists a version that is not a release, and the
-  library's versions skip the odd minors.
+- Releases (even minor versions, such as `1.4.0`) are published under npm's default `latest`
+  dist-tag. The extension's pre-releases (odd minors, such as `1.5.0`, which the Marketplace
+  requires) are published under `next`, so `npm install regex-explain` never installs one, while
+  `npm install regex-explain@next` does.
 - There are no library release candidates: `staging` pushes publish nothing.
 - npm publishing uses trusted publishing, with provenance. npm trusts only `publish-library.yml`
   started on its own, so the extension workflow starts it with `gh workflow run`, not as a called
@@ -182,9 +183,9 @@ tag. It never picks a version of its own.
   Add `-f dry-run=true` to build and pack the library without publishing it.
 
 - Every run builds the API docs ([typedoc.json](packages/regex-explain/typedoc.json)) before
-  publishing, so a docs failure stops the publish. A published run deploys them to GitHub Pages at
-  `https://awalsh128.com/vscode-regex-explain/`. Pages must be set to deploy from GitHub Actions,
-  and the `github-pages` environment restricted to `main`. Preview locally with
+  publishing, so a docs failure stops the publish. A published release (not a pre-release) deploys
+  them to GitHub Pages at `https://awalsh128.com/vscode-regex-explain/`. Pages must be set to deploy
+  from GitHub Actions, and the `github-pages` environment restricted to `main`. Preview locally with
   `npm run docs:api -w regex-explain`.
 - A run first requires a successful CI run for the tag's commit.
 

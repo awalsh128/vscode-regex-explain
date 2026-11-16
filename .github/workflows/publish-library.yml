@@ -3,9 +3,10 @@ name: Publish Library
 # Publishes regex-explain to npm at the version of an extension release. The library and the
 # extension share one version: publish-extension.yml tags `vX.Y.Z` and then starts this workflow
 # with that tag, so the npm package, the VSIX and the GitHub release all carry the same number.
-# Only official releases (even minor versions) are published; the extension's pre-releases (odd
-# minors) are not, so npm never sees a version that is not a release. A run for a version that npm
-# already has publishes nothing, so a failed run can be started again.
+# Releases (even minor versions) are published under npm's default `latest` dist-tag. The
+# extension's pre-releases (odd minors, which the Marketplace requires) are published under `next`,
+# so `npm install regex-explain` never picks one up but `regex-explain@next` can try it. A run for
+# a version that npm already has publishes nothing, so a failed run can be started again.
 #
 # No secrets: the job's OIDC token is exchanged for the npm credential. npm trusted publishing is
 # bound to this workflow file and the 'release' environment, which only main can use here, so the
@@ -16,7 +17,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag to publish, such as v1.4.0 (an even minor version)"
+        description: "Release tag to publish, such as v1.4.0 (a release) or v1.5.0 (a pre-release)"
         type: string
         required: true
       dry-run:
@@ -35,7 +36,7 @@ jobs:
     timeout-minutes: 20
     environment: release
     outputs:
-      version: ${{ steps.version.outputs.version }} # Empty on dry runs
+      version: ${{ steps.version.outputs.version }} # Empty on dry runs and pre-releases
     # One publish at a time; never cancel one that is publishing.
     concurrency:
       group: publish-library
@@ -46,8 +47,8 @@ jobs:
       id-token: write # For OIDC: npm trusted publishing with provenance
       pages: read # For configure-pages to read the Pages site settings
     steps:
-      # Resolves the tag to a commit before anything runs, and refuses anything that is not an
-      # official release tag.
+      # Resolves the tag to a commit before anything runs, and refuses anything that is not a
+      # release or pre-release tag.
       - name: Checkout the release tag
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -66,14 +67,17 @@ jobs:
             echo "::error::'$TAG' is not a release tag such as v1.4.0."
             exit 1
           fi
+          # VS Code's convention: odd minor versions are pre-releases.
           if (( BASH_REMATCH[2] % 2 == 1 )); then
-            echo "::error::$TAG is a pre-release (odd minor version); only releases are published to npm."
-            exit 1
+            echo "dist-tag=next" >> "$GITHUB_OUTPUT"
+          else
+            echo "dist-tag=latest" >> "$GITHUB_OUTPUT"
+            # Only releases update the docs site.
+            if [[ "$DRY_RUN" != "true" ]]; then
+              echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+            fi
           fi
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          if [[ "$DRY_RUN" != "true" ]]; then
-            echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
-          fi
 
       - name: Require CI success
         uses: ./.github/actions/require-ci-success
@@ -105,16 +109,17 @@ jobs:
         env:
           TAG: ${{ inputs.tag }}
           DRY_RUN: ${{ inputs.dry-run }}
+          DIST_TAG: ${{ steps.version.outputs.dist-tag }}
         shell: bash
         run: |
           set -euo pipefail
           version="${TAG#v}"
           if [[ "$DRY_RUN" == "true" ]]; then
-            npm publish -w regex-explain --dry-run
+            npm publish -w regex-explain --tag "$DIST_TAG" --dry-run
           elif npm view "regex-explain@$version" version > /dev/null 2>&1; then
             echo "regex-explain@$version is already on npm; nothing to publish."
           else
-            npm publish -w regex-explain
+            npm publish -w regex-explain --tag "$DIST_TAG"
           fi
 
       - name: Setup Pages

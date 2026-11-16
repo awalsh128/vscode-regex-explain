@@ -5,8 +5,8 @@ name: Publish Extension
 # that VSIX to both registries with scripts/ops.ts. Releases never commit, because main only
 # fast-forwards to staging (see promote.yml). Runs that find no release-worthy commits publish
 # nothing. The same version is then published to npm as the library, by starting
-# publish-library.yml (releases only; pre-releases are not published to npm). The library and
-# the extension share one version. See packages/vscode-regex-explain/release.config.cjs and
+# publish-library.yml (releases go to npm's `latest`, pre-releases to `next`). The library and the
+# extension share one version. See packages/vscode-regex-explain/release.config.cjs and
 # CONTRIBUTING.md#publishing-the-extension.
 #
 # No secrets: each job's OIDC token is exchanged for its credentials. The jobs are split so that
@@ -152,10 +152,10 @@ jobs:
 
   # The library shares the extension's version, so a release publishes it to npm at the same tag.
   # publish-library.yml is started on its own, not called, because npm trusted publishing is bound
-  # to that workflow file. Pre-releases are not published to npm, and dry runs create no tag.
+  # to that workflow file. Dry runs create no tag, so they publish nothing.
   start-library:
     needs: [release, publish]
-    if: ${{ needs.release.outputs.tag != '' && !inputs.pre-release }}
+    if: ${{ needs.release.outputs.tag != '' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
