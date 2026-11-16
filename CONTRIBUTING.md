@@ -74,12 +74,16 @@ the pull request are not checked in CI. Split changes that need separate release
 
 Releases are versioned by [semantic-release](https://semantic-release.gitbook.io/) from the commit
 messages on `staging`, which are the squashed [pull request titles](#pull-requests). The library and
-the extension are versioned and released separately:
+the extension share one version, so a release gives the npm package, the VSIX and the GitHub release
+the same `vX.Y.Z` tag:
 
-| Package                   | Workflow                                                         | Tags                   | Configuration                                                                                        |
-| ------------------------- | ---------------------------------------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------- |
-| `regex-explain`           | [publish-library.yml](.github/workflows/publish-library.yml)     | `regex-explain-vX.Y.Z` | [packages/regex-explain/release.config.cjs](packages/regex-explain/release.config.cjs)               |
-| Regex Explain for VS Code | [publish-extension.yml](.github/workflows/publish-extension.yml) | `vX.Y.Z`               | [packages/vscode-regex-explain/release.config.cjs](packages/vscode-regex-explain/release.config.cjs) |
+| What                      | Workflow                                                         | Published to                                     |
+| ------------------------- | ---------------------------------------------------------------- | ------------------------------------------------ |
+| Regex Explain for VS Code | [publish-extension.yml](.github/workflows/publish-extension.yml) | Marketplace, Open VSX, GitHub release (`vX.Y.Z`) |
+| `regex-explain`           | [publish-library.yml](.github/workflows/publish-library.yml)     | npm, at the extension's version, on releases     |
+
+The configuration is
+[packages/vscode-regex-explain/release.config.cjs](packages/vscode-regex-explain/release.config.cjs).
 
 | Commit                                                       | Calls for |
 | ------------------------------------------------------------ | --------- |
@@ -88,13 +92,13 @@ the extension are versioned and released separately:
 | `feat!: ...` or a `BREAKING CHANGE:` footer                  | major     |
 | `docs:`, `ci:`, `chore:`, `refactor:`, `test:`, `build:` ... | none      |
 
-The library counts only commits that change `packages/regex-explain/`
-([semantic-release-monorepo](https://github.com/pmowrer/semantic-release-monorepo)). The extension
-counts every commit, because it bundles the library.
+Every commit counts, whichever package it changes, because the extension bundles the library and the
+library is published at the same version.
 
 Releases never commit. The committed `package.json` files keep the placeholder version `0.0.0`, and
-semantic-release writes the real version into them in the CI workspace only. The tags and GitHub
-releases are the version history.
+the release workflows write the real version into them in the CI workspace only. The tags and GitHub
+releases are the version history. Tags from before the versions were shared, such as
+`regex-explain-v1.2.0`, are left as history; new releases are all `v*`.
 
 ### Branches
 
@@ -158,29 +162,31 @@ trigger a release.
 
 ### Publishing the Library
 
-Every library release is gated by CI on the exact commit being released:
+The library is published by [publish-library.yml](.github/workflows/publish-library.yml), which
+[Publishing the Extension](#publishing-the-extension) starts after a release, with the release's
+tag. It never picks a version of its own.
 
-| Branch    | Releases                   | Example      | Started by                                       |
-| --------- | -------------------------- | ------------ | ------------------------------------------------ |
-| `staging` | Release candidates         | `1.2.0-rc.1` | The last CI job on a `staging` push, after tests |
-| `main`    | Official (stable) releases | `1.2.0`      | The promote workflow                             |
-
-- Each release candidate increments the `rc` number until the version is promoted. Candidates get a
-  tag and a GitHub prerelease, but are not published to npm.
-- Official releases publish to npm through trusted publishing, with provenance. npm trusts only
-  `publish-library.yml` started on its own, which candidates are not (ci.yml calls it).
-- Every release builds the API docs ([typedoc.json](packages/regex-explain/typedoc.json)) in
-  semantic-release's `prepare` step, through `@semantic-release/exec`, so a docs failure stops the
-  release before it is tagged. Only official releases deploy them to GitHub Pages at
-  `https://awalsh128.com/vscode-regex-explain/`; candidates and runs that release nothing leave the
-  site unchanged. Pages must be set to deploy from GitHub Actions, and the `github-pages`
-  environment restricted to `main`. Preview locally with `npm run docs:api -w regex-explain`.
-- Manual runs first require a successful CI run for the commit. Start one with `dry-run: true` to
-  preview the next version without tagging:
+- Only releases are published to npm (even minor versions, such as `1.4.0`). The extension's
+  pre-releases (odd minors) are not, so npm never lists a version that is not a release, and the
+  library's versions skip the odd minors.
+- There are no library release candidates: `staging` pushes publish nothing.
+- npm publishing uses trusted publishing, with provenance. npm trusts only `publish-library.yml`
+  started on its own, so the extension workflow starts it with `gh workflow run`, not as a called
+  workflow.
+- A run for a version npm already has publishes nothing, so start it again after a failure:
 
   ```sh
-  gh workflow run publish-library.yml --ref staging -f dry-run=true
+  gh workflow run publish-library.yml --ref main -f tag=v1.4.0
   ```
+
+  Add `-f dry-run=true` to build and pack the library without publishing it.
+
+- Every run builds the API docs ([typedoc.json](packages/regex-explain/typedoc.json)) before
+  publishing, so a docs failure stops the publish. A published run deploys them to GitHub Pages at
+  `https://awalsh128.com/vscode-regex-explain/`. Pages must be set to deploy from GitHub Actions,
+  and the `github-pages` environment restricted to `main`. Preview locally with
+  `npm run docs:api -w regex-explain`.
+- A run first requires a successful CI run for the tag's commit.
 
 ### Publishing the Extension
 
@@ -219,6 +225,9 @@ After checking that CI passed on the commit, a run:
    `v*` tag on the commit, skipping a registry that already has it. After a partial failure, use
    **Re-run failed jobs**: the commit already carries the tag, so the rerun publishes it to the
    remaining registries.
+4. For a release (not a pre-release), starts
+   [publish-library.yml](.github/workflows/publish-library.yml) with the tag, which publishes the
+   library to npm at the same version.
 
 `npm run ops -- publish --dry-run` packages the VSIX and lists the registries that do not have the
 version yet, from any machine.
@@ -235,8 +244,8 @@ short-lived credentials. Each registry must list this repository, the workflow f
 | VS Code Marketplace | `publish-extension.yml` | The `awalsh128` publisher's trusted publishers; `vsce publish --oidc` exchanges the token.                                                                                                                           |
 | Open VSX            | `publish-extension.yml` | The namespace's [trusted publishers](https://open-vsx.org/user-settings/trusted-publishers); `ops.ts` exchanges the token for a publishing token.                                                                    |
 
-Run a dry run of the matching workflow after changing a `release.config.cjs`. A dry run checks the
-configuration but does not publish.
+Run a dry run of the matching workflow after changing the release configuration. A dry run checks
+the configuration but does not publish.
 
 ## License
 

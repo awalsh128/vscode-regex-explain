@@ -16,8 +16,9 @@
  * A feature released directly from an even minor would need to skip an odd minor, and a breaking
  * pre-release would land on an even minor, so both are refused with guidance instead.
  *
- * Only the extension's releases use it (packages/vscode-regex-explain/release.config.cjs); the npm
- * library is versioned on its own.
+ * It is the repository's only version policy (packages/vscode-regex-explain/release.config.cjs).
+ * The npm library shares the extension's version, so it is published only for releases (even
+ * minors), at the same number.
  */
 
 /** A semver bump that semantic-release applies to the last version. */

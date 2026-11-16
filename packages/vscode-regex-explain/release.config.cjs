@@ -2,10 +2,11 @@
  * Semantic-release configuration for the extension. The Publish Extension workflow runs it from
  * this directory; see CONTRIBUTING.md#publishing-the-extension.
  *
- * The extension is versioned on its own, with `v<version>` tags. Every commit counts, not only
- * those under this directory, because the extension bundles the library. Releases never commit:
- * `main` only fast-forwards to `staging` (see .github/workflows/promote.yml), so the version is
- * written into package.json in the CI workspace only.
+ * This is the repository's only release configuration: the extension and the library share one
+ * version, with `v<version>` tags. Every commit counts, whichever package it changes, because the
+ * extension bundles the library and the library is published at the same version. Releases never
+ * commit: `main` only fast-forwards to `staging` (see .github/workflows/promote.yml), so the
+ * version is written into package.json in the CI workspace only.
  */
 module.exports = {
   branches: ["main"],

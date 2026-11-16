@@ -4,7 +4,9 @@ name: Publish Extension
 # tag, then tags it and creates the GitHub release with the VSIX; the publish job then publishes
 # that VSIX to both registries with scripts/ops.ts. Releases never commit, because main only
 # fast-forwards to staging (see promote.yml). Runs that find no release-worthy commits publish
-# nothing. See packages/vscode-regex-explain/release.config.cjs and
+# nothing. The same version is then published to npm as the library, by starting
+# publish-library.yml (releases only; pre-releases are not published to npm). The library and
+# the extension share one version. See packages/vscode-regex-explain/release.config.cjs and
 # CONTRIBUTING.md#publishing-the-extension.
 #
 # No secrets: each job's OIDC token is exchanged for its credentials. The jobs are split so that
@@ -147,3 +149,21 @@ jobs:
             args+=(--pre-release)
           fi
           npm run ops -- "${args[@]}"
+
+  # The library shares the extension's version, so a release publishes it to npm at the same tag.
+  # publish-library.yml is started on its own, not called, because npm trusted publishing is bound
+  # to that workflow file. Pre-releases are not published to npm, and dry runs create no tag.
+  start-library:
+    needs: [release, publish]
+    if: ${{ needs.release.outputs.tag != '' && !inputs.pre-release }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: write # For starting publish-library.yml
+    steps:
+      - name: Start the library publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.release.outputs.tag }}
+        run:
+          gh workflow run publish-library.yml --repo "$GITHUB_REPOSITORY" --ref main -f tag="$TAG"
