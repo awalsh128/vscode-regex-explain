@@ -203,10 +203,15 @@ that split:
 | 1.1.0        | pre-release | `fix` or `feat`     | 1.1.1           |
 | 1.1.1        | release     | any, including none | 1.2.0 (promote) |
 | 1.2.0        | release     | `fix`               | 1.2.1           |
-| any          | release     | breaking            | next major      |
+| any          | release     | breaking, `major`   | next major      |
 
 Features go out as a pre-release first: a release run refuses `feat` commits after a release, since
 it would have to skip an odd minor.
+
+Breaking commits (`feat!:` or a `BREAKING CHANGE:` footer) count as features unless the run sets
+`major`, so the version stays on its major until a major release is chosen on purpose. Without
+`major`, they go out as a pre-release first, like any feature. Run with `-f major=true` to bump the
+major version.
 
 Start the **Publish Extension** workflow by hand on `main`, usually after a promotion. It defaults
 to a dry run that prints the next version and release notes:
@@ -214,6 +219,7 @@ to a dry run that prints the next version and release notes:
 ```sh
 gh workflow run publish-extension.yml --ref main -f dry-run=false                     # release
 gh workflow run publish-extension.yml --ref main -f dry-run=false -f pre-release=true # pre-release
+gh workflow run publish-extension.yml --ref main -f dry-run=false -f major=true       # major release
 ```
 
 After checking that CI passed on the commit, a run:

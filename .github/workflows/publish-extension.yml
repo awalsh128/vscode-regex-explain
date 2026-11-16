@@ -27,6 +27,11 @@ on:
         required: true
         type: boolean
         default: false
+      major:
+        description: Let breaking commits bump the major version (otherwise they count as features)
+        required: true
+        type: boolean
+        default: false
 
 permissions: {}
 
@@ -81,6 +86,7 @@ jobs:
         uses: ./.github/actions/semantic-release
         env:
           VSCE_PRE_RELEASE: ${{ inputs.pre-release }}
+          ALLOW_MAJOR: ${{ inputs.major }}
         with:
           working-directory: packages/vscode-regex-explain
           dry-run: ${{ inputs.dry-run }}

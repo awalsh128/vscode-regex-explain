@@ -1,7 +1,14 @@
 import { expect } from "chai";
 import { describe, it } from "mocha";
 import * as sinon from "sinon";
-import { analyzeCommits, changeType, commitReleaseType, nextReleaseType } from "../release-version";
+import {
+  analyzeCommits,
+  capChange,
+  changeType,
+  commitReleaseType,
+  nextReleaseType,
+  ReleaseType,
+} from "../release-version";
 
 describe("commitReleaseType", () => {
   [
@@ -29,6 +36,21 @@ describe("changeType", () => {
   it("should return null when nothing releases", () => {
     // Act & Assert
     expect(changeType(["docs: a", "ci: b"])).to.equal(null);
+  });
+});
+
+describe("capChange", () => {
+  [
+    { change: "major", allow: false, expected: "minor" },
+    { change: "major", allow: true, expected: "major" },
+    { change: "minor", allow: false, expected: "minor" },
+    { change: "patch", allow: false, expected: "patch" },
+    { change: null, allow: false, expected: null },
+  ].forEach(({ change, allow, expected }) => {
+    it(`should map ${change} to ${expected} when major is ${allow ? "" : "not "}allowed`, () => {
+      // Act & Assert
+      expect(capChange(change as "major" | "minor" | "patch" | null, allow)).to.equal(expected);
+    });
   });
 });
 
@@ -83,5 +105,23 @@ describe("analyzeCommits", () => {
     // Assert
     expect(type).to.equal("minor");
     expect(logger.log.calledWithMatch(/publishing a pre-release with minor bump/)).to.equal(true);
+  });
+
+  it("should count breaking commits as features unless ALLOW_MAJOR is set", async () => {
+    // Arrange
+    const commits = [{ message: "feat!: remove the syntax tree" }];
+    const run = (env: NodeJS.ProcessEnv): Promise<ReleaseType | null> =>
+      analyzeCommits(
+        {},
+        { commits, lastRelease: { version: "1.4.0" }, env, logger: { log: sinon.stub() } }
+      );
+
+    // Act & Assert
+    // A feature after a release is refused, so the breaking change goes out as a pre-release.
+    expect(await run({ VSCE_PRE_RELEASE: "true" })).to.equal("minor");
+    expect(await run({ ALLOW_MAJOR: "true" })).to.equal("major");
+    let refused: unknown;
+    await run({}).catch((error: unknown) => (refused = error));
+    expect(String(refused)).to.match(/skip a minor version/);
   });
 });

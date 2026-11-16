@@ -3,7 +3,8 @@
  * Code's pre-release convention: releases use even minor versions (1.0.x, 1.2.x) and pre-releases
  * odd ones (1.1.x, 1.3.x), so the two never collide. It replaces
  * `@semantic-release/commit-analyzer` in the extension's release.config.cjs, and reads
- * `VSCE_PRE_RELEASE` the same way semantic-release-vsce does.
+ * `VSCE_PRE_RELEASE` the same way semantic-release-vsce does, and `ALLOW_MAJOR` to let breaking
+ * commits bump the major version.
  *
  * | Last version | Run         | Commits             | Bump            |
  * | ------------ | ----------- | ------------------- | --------------- |
@@ -12,6 +13,10 @@
  * | odd minor    | release     | any, including none | minor (promote) |
  * | even minor   | release     | fix                 | patch           |
  * | any          | release     | breaking            | major           |
+ *
+ * Breaking commits only bump the major version when the run opts in with `ALLOW_MAJOR`. Otherwise
+ * they count as features, so a young project does not reach 2.0.0 by accident, and a breaking
+ * change can go out as a pre-release first.
  *
  * A feature released directly from an even minor would need to skip an odd minor, and a breaking
  * pre-release would land on an even minor, so both are refused with guidance instead.
@@ -79,6 +84,18 @@ export function changeType(messages: readonly string[]): ReleaseType | null {
 }
 
 /**
+ * Keeps breaking commits from bumping the major version unless the run allows it.
+ *
+ * @param change The bump the commits call for, or null.
+ * @param allowMajor Whether this run may bump the major version.
+ *
+ * @returns The bump, with major lowered to minor when it is not allowed.
+ */
+export function capChange(change: ReleaseType | null, allowMajor: boolean): ReleaseType | null {
+  return change === "major" && !allowMajor ? "minor" : change;
+}
+
+/**
  * Maps the commits' bump to the bump that keeps releases on even minors and pre-releases on odd
  * minors.
  *
@@ -142,8 +159,13 @@ export async function analyzeCommits(
   context: AnalyzeCommitsContext
 ): Promise<ReleaseType | null> {
   const preRelease = /^(true|1)$/i.test(context.env.VSCE_PRE_RELEASE ?? "");
-  const change = changeType(context.commits.map((commit) => commit.message));
+  const allowMajor = /^(true|1)$/i.test(context.env.ALLOW_MAJOR ?? "");
+  const called = changeType(context.commits.map((commit) => commit.message));
+  const change = capChange(called, allowMajor);
   const type = nextReleaseType(change, context.lastRelease.version, preRelease);
+  if (change !== called) {
+    context.logger.log("Breaking commits are counted as features; set ALLOW_MAJOR to bump major.");
+  }
   context.logger.log(
     `Commits call for ${change ?? "no release"}; publishing ` +
       `${preRelease ? "a pre-release" : "a release"} with ${type ?? "no"} bump.`
