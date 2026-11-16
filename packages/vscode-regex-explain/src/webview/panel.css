@@ -494,33 +494,3 @@ body.vscode-dark .regex span,
 body.vscode-high-contrast:not(.vscode-high-contrast-light) .regex span {
   color: var(--shiki-dark);
 }
-
-.syntax-tree-diagram {
-  overflow-x: auto;
-}
-
-.syntax-tree-diagram svg {
-  color: var(--vscode-foreground);
-  display: block;
-}
-
-.syntax-tree .node rect {
-  fill: var(--vscode-textCodeBlock-background);
-  stroke: var(--vscode-panel-border, var(--vscode-foreground));
-}
-
-.syntax-tree .node.error rect {
-  stroke: var(--vscode-editorError-foreground);
-}
-
-.syntax-tree .type {
-  fill: var(--vscode-descriptionForeground);
-}
-
-.syntax-tree .text {
-  font-family: var(--vscode-editor-font-family), monospace;
-}
-
-.syntax-tree .edge {
-  stroke: var(--vscode-descriptionForeground);
-}

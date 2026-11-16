@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { afterEach, describe, it } from "mocha";
 import * as path from "path";
-import { RegexFinder, RegexParser } from "regex-explain";
+import { RegexFinder } from "regex-explain";
 import * as vscode from "vscode";
 import { FOLLOW_DELAY_MS, PanelFollower } from "../../follow";
 import { RegexHoverProvider } from "../../hover";
@@ -34,8 +34,7 @@ function newPanel(): ExplanationPanel {
   return new ExplanationPanel(
     vscode.Uri.file(EXTENSION_DIR),
     new RegexMatcher(path.join(EXTENSION_DIR, "dist", "matchWorker.js")),
-    new PanelTemplate(path.join(EXTENSION_DIR, "dist")),
-    new RegexParser(path.join(EXTENSION_DIR, "dist"))
+    new PanelTemplate(path.join(EXTENSION_DIR, "dist"))
   );
 }
 

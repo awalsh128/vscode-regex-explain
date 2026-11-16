@@ -1,8 +1,7 @@
 import { expect } from "chai";
 import { describe, it } from "mocha";
-import { SyntaxTreeNode } from "../compiler";
 import { explainRegex } from "../explainer";
-import { ExplanationRenderer, syntaxTreeSvg } from "../render";
+import { ExplanationRenderer } from "../render";
 import { explainValid, NO_FLAGS } from "./testing";
 
 describe("ExplanationRenderer.markdownList", () => {
@@ -324,79 +323,5 @@ describe("ExplanationRenderer.model", () => {
       // Act & Assert
       expect(new ExplanationRenderer(explainValid(pattern)).model().length).to.equal(expected);
     });
-  });
-});
-
-/**
- * Builds a syntax tree node for drawing, where offsets do not matter.
- *
- * @param type The node type.
- * @param text The source text.
- * @param children The child nodes.
- *
- * @returns The node, without an error.
- */
-function syntaxNode(
-  type: string,
-  text: string,
-  children: readonly SyntaxTreeNode[] = []
-): SyntaxTreeNode {
-  return { type, text, start: 0, end: text.length, error: false, children };
-}
-
-describe("syntaxTreeSvg", () => {
-  it("should center each node over its children", () => {
-    // Arrange
-    const tree = syntaxNode("pattern", "a+", [
-      syntaxNode("term", "a+", [
-        syntaxNode("pattern_character", "a"),
-        syntaxNode("one_or_more", "+"),
-      ]),
-    ]);
-
-    // Act
-    const svg = syntaxTreeSvg(tree);
-
-    // Assert
-    expect(svg.split("\n")).to.deep.equal([
-      '<svg xmlns="http://www.w3.org/2000/svg" class="syntax-tree" width="253.6" height="172" viewBox="0 0 253.6 172" font-family="monospace" font-size="12" role="img" aria-label="Syntax tree of a+">',
-      '<g transform="translate(4 4)">',
-      '<line class="edge" x1="133.6" y1="36" x2="133.6" y2="64" stroke="currentColor"/>',
-      '<line class="edge" x1="133.6" y1="100" x2="69.2" y2="128" stroke="currentColor"/>',
-      '<line class="edge" x1="133.6" y1="100" x2="198" y2="128" stroke="currentColor"/>',
-      '<g class="node"><title>pattern: a+</title><rect x="100.4" y="0" width="66.4" height="36" rx="4" fill="none" stroke="currentColor"/><text class="type" x="133.6" y="14" text-anchor="middle" fill="currentColor">pattern</text><text class="text" x="133.6" y="29" text-anchor="middle" fill="currentColor">a+</text></g>',
-      '<g class="node"><title>term: a+</title><rect x="111.2" y="64" width="44.8" height="36" rx="4" fill="none" stroke="currentColor"/><text class="type" x="133.6" y="78" text-anchor="middle" fill="currentColor">term</text><text class="text" x="133.6" y="93" text-anchor="middle" fill="currentColor">a+</text></g>',
-      '<g class="node"><title>pattern_character: a</title><rect x="0" y="128" width="138.4" height="36" rx="4" fill="none" stroke="currentColor"/><text class="type" x="69.2" y="142" text-anchor="middle" fill="currentColor">pattern_character</text><text class="text" x="69.2" y="157" text-anchor="middle" fill="currentColor">a</text></g>',
-      '<g class="node"><title>one_or_more: +</title><rect x="150.4" y="128" width="95.2" height="36" rx="4" fill="none" stroke="currentColor"/><text class="type" x="198" y="142" text-anchor="middle" fill="currentColor">one_or_more</text><text class="text" x="198" y="157" text-anchor="middle" fill="currentColor">+</text></g>',
-      "</g>",
-      "</svg>",
-    ]);
-  });
-
-  it("should escape text and shorten long labels, keeping the full text in the tooltip", () => {
-    // Arrange
-    const text = "<b>&'\"".padEnd(30, "x");
-
-    // Act
-    const svg = syntaxTreeSvg(syntaxNode("term", text));
-
-    // Assert
-    expect(svg).to.include(
-      "<title>term: &lt;b&gt;&amp;&#39;&quot;xxxxxxxxxxxxxxxxxxxxxxxx</title>"
-    );
-    expect(svg).to.include(">&lt;b&gt;&amp;&#39;&quot;xxxxxxxxxxxxxxxxx…</text>");
-  });
-
-  it("should mark error nodes and leave out the text of missing ones", () => {
-    // Arrange
-    const missing: SyntaxTreeNode = { ...syntaxNode(")", ""), error: true };
-
-    // Act
-    const svg = syntaxTreeSvg(syntaxNode("anonymous_capturing_group", "(a", [missing]));
-
-    // Assert
-    expect(svg).to.include(
-      '<g class="node error"><title>)</title><rect x="86.4" y="64" width="23.2" height="36" rx="4" fill="none" stroke="currentColor"/><text class="type" x="98" y="78" text-anchor="middle" fill="currentColor">)</text></g>'
-    );
   });
 });

@@ -35,9 +35,6 @@ export interface PanelResources {
 /** The panel's title, on its tab and as the page heading. */
 export const PANEL_TITLE = "Regex Explanation";
 
-/** The syntax tree diagram, once drawn: the SVG, or why it could not be drawn. */
-export type PanelSyntaxTree = { readonly svg: string } | { readonly error: string };
-
 /** Indentation per nesting level of the Pattern column, in `em`. */
 const INDENT_EM = 1.25;
 
@@ -63,11 +60,10 @@ export class PanelTemplate {
    *
    * @param result The explanation to show.
    * @param resources The webview URIs and nonce.
-   * @param syntaxTree The pattern's syntax tree diagram; without it, the page says one is coming.
    *
    * @returns The HTML document.
    */
-  render(result: ExplainResult, resources: PanelResources, syntaxTree?: PanelSyntaxTree): string {
+  render(result: ExplainResult, resources: PanelResources): string {
     const model = new ExplanationRenderer(result).model();
     const error = model.error && {
       message: model.error.message,
@@ -93,8 +89,6 @@ export class PanelTemplate {
       })),
       hasFlags: model.flags.length > 0,
       diagram: result.ok ? layoutMachine(stateMachine(result)) : undefined,
-      // The library escapes the SVG's text, so the template inserts it as it is.
-      syntaxTree,
     };
     // Mustache passes numbers, such as the indent, to the escape function as they are.
     return Mustache.render(this.page, view, this.partials, {

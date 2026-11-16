@@ -21,8 +21,7 @@ export type {
   RegexSource,
 } from "./explainer";
 export { describeCount, explainRegex, isRegexSource, parseRegexInput } from "./explainer";
-export type { SyntaxTreeNode } from "./compiler";
-export { GRAMMARS, RegexParser, SUPPORTED_LANGUAGE_IDS } from "./compiler";
+export { GRAMMARS, SUPPORTED_LANGUAGE_IDS } from "./compiler";
 export type { LocatedRegex } from "./locator";
 export { findRegexAt, RegexFinder } from "./locator";
 export type {
@@ -55,5 +54,5 @@ export type {
   RenderOptions,
   WarningModel,
 } from "./render";
-export { ExplanationRenderer, syntaxTreeSvg } from "./render";
+export { ExplanationRenderer } from "./render";
 export type { TextPart } from "./text";

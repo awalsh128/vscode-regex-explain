@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { describe, it } from "mocha";
 import { GRAMMARS, SUPPORTED_LANGUAGE_IDS } from "../compiler";
-import { findIn, PARSER, syntaxOutline } from "./testing";
+import { findIn } from "./testing";
 
 describe("LANGUAGES", () => {
   [
@@ -169,7 +169,6 @@ describe("GRAMMARS", () => {
       "c-sharp",
       "ruby",
       "php",
-      "regex",
     ]);
   });
 });
@@ -192,70 +191,5 @@ describe("SUPPORTED_LANGUAGE_IDS", () => {
       "ruby",
       "php",
     ]);
-  });
-});
-
-describe("RegexParser.syntaxTree", () => {
-  [
-    {
-      name: "a quantifier as a sibling of what it repeats",
-      pattern: "a+",
-      expected: [
-        'pattern "a+" 0-2',
-        '  term "a+" 0-2',
-        '    pattern_character "a" 0-1',
-        '    one_or_more "+" 1-2',
-      ],
-    },
-    {
-      name: "alternatives and named groups",
-      pattern: "(?<y>\\d)|x",
-      expected: [
-        'pattern "(?<y>\\\\d)|x" 0-10',
-        '  alternation "(?<y>\\\\d)|x" 0-10',
-        '    term "(?<y>\\\\d)" 0-8',
-        '      named_capturing_group "(?<y>\\\\d)" 0-8',
-        '        group_name "y" 3-4',
-        '        pattern "\\\\d" 5-7',
-        '          term "\\\\d" 5-7',
-        '            character_class_escape "\\\\d" 5-7',
-        '    term "x" 9-10',
-        '      pattern_character "x" 9-10',
-      ],
-    },
-    {
-      name: "a missing closing parenthesis as an error",
-      pattern: "(a",
-      expected: [
-        'pattern "(a" 0-2',
-        '  term "(a" 0-2',
-        '    anonymous_capturing_group "(a" 0-2',
-        '      pattern "a" 1-2',
-        '        term "a" 1-2',
-        '          pattern_character "a" 1-2',
-        '      ) "" 2-2 !',
-      ],
-    },
-    {
-      name: "an unexpected closing parenthesis as an error",
-      pattern: "a)b",
-      expected: [
-        'pattern "a)b" 0-3',
-        '  ERROR "a)" 0-2 !',
-        '    pattern "a" 0-1',
-        '      term "a" 0-1',
-        '        pattern_character "a" 0-1',
-        '  term "b" 2-3',
-        '    pattern_character "b" 2-3',
-      ],
-    },
-  ].forEach(({ name, pattern, expected }) => {
-    it(`should parse ${name}`, async () => {
-      // Act
-      const tree = await PARSER.syntaxTree(pattern);
-
-      // Assert
-      expect(syntaxOutline(tree)).to.deep.equal(expected);
-    });
   });
 });
