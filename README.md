@@ -20,6 +20,12 @@ repository has two packages, each versioned and released on its own:
 | [`regex-explain`](packages/regex-explain)                  | A TypeScript library on npm that explains a regex as a tree of steps, finds regexes in source code, and lists a regex's matches in text             |
 | [Regex Explain for VS Code](packages/vscode-regex-explain) | A VS Code extension that shows those explanations on hover and in a panel beside the code, where you can also match the regex against your own text |
 
+<video src="packages/vscode-regex-explain/images/demo.webm" controls muted width="100%"></video>
+
+The demo shows the extension hovering a regex, opening the panel, expanding its Steps, matching
+sample input with the results beside it, following the cursor, warning about a backtracking pattern,
+updating as the regex is edited, and explaining a Python regex.
+
 See each package's README for usage. Contributor setup, testing, and publishing are in
 [CONTRIBUTING.md](CONTRIBUTING.md); architecture is in [docs/SOURCE_CODE.md](docs/SOURCE_CODE.md).
 

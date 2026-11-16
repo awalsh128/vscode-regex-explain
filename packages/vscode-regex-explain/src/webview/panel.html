@@ -107,12 +107,6 @@
           </vscode-table-body>
         </vscode-table>
       </details>
-      <h2>Syntax Tree</h2>
-      <div class="syntax-tree-diagram">
-        {{#syntaxTree.svg}}{{{syntaxTree.svg}}}{{/syntaxTree.svg}}
-        {{#syntaxTree.error}}<p class="error" role="alert"><strong>Could not draw the syntax tree:</strong> {{syntaxTree.error}}</p>{{/syntaxTree.error}}
-        {{^syntaxTree}}<p class="note pending">Drawn when the regex stops changing.</p>{{/syntaxTree}}
-      </div>
       {{#hasFlags}}
       <h2>Flags</h2>
       <ul class="flags">

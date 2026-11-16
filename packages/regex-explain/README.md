@@ -214,38 +214,7 @@ findRegexAt(regexes, 30); // the same regex, which covers offset 30
   only), `python`, `go`, `rust`, `java`, `csharp`, `ruby`, and `php`. The
   [extension README](https://github.com/awalsh128/vscode-regex-explain/tree/main/packages/vscode-regex-explain#readme)
   lists the calls recognized in each.
-- `GRAMMARS` lists the grammar names, including `regex`, for copying `tree-sitter-<grammar>.wasm`
-  files when bundling.
-
-### `RegexParser`
-
-`new RegexParser(wasmDir)` parses patterns with tree-sitter's `regex` grammar, from the same
-`wasmDir` as `RegexFinder` (it needs `tree-sitter.wasm` and `tree-sitter-regex.wasm`).
-`syntaxTree(pattern)` resolves to the root `SyntaxTreeNode`: the grammar's node `type`, the `text`
-it covers, its `start` and `end` offsets, whether it is an `error`, and its `children` (named and
-missing nodes only). The grammar recovers from syntax errors, so an invalid pattern still has a
-tree: `(a` ends in a missing `)` node with `error: true`. Quantifiers are siblings of what they
-repeat:
-
-```ts
-const parser = new RegexParser(path.dirname(require.resolve("@vscode/tree-sitter-wasm")));
-const tree = await parser.syntaxTree("\\d+"); // in an ES module
-// pattern > term > [character_class_escape "\\d", one_or_more "+"]
-// tree.children[0].children[1]:
-//   { type: "one_or_more", text: "+", start: 2, end: 3, error: false, children: [] }
-```
-
-### `syntaxTreeSvg(tree)`
-
-Draws a `SyntaxTreeNode` from `RegexParser.syntaxTree` as an `<svg>` string: a box per node, with
-its type over its source text (shortened to 24 characters, with the whole text in a `<title>`
-tooltip), each node centered over its children. Strokes and text use `currentColor`, and elements
-have the classes `syntax-tree`, `edge`, `node`, `error`, `type`, and `text` for styling.
-
-```ts
-syntaxTreeSvg(await parser.syntaxTree("\\d+"));
-// <svg xmlns="http://www.w3.org/2000/svg" class="syntax-tree" width="289.6" height="172" ...>
-```
+- `GRAMMARS` lists the grammar names, for copying `tree-sitter-<grammar>.wasm` files when bundling.
 
 ### `findMatches(request)`
 

@@ -192,44 +192,6 @@ describe("PanelTemplate", () => {
   });
 });
 
-describe("PanelTemplate syntax tree", () => {
-  it("should insert the drawn syntax tree as it is", () => {
-    // Act
-    const html = TEMPLATE.render(explainRegex("a", "", NO_BACKTRACKING), RESOURCES, {
-      svg: '<svg class="syntax-tree"></svg>',
-    });
-
-    // Assert
-    expect(html).to.include(
-      '<div class="syntax-tree-diagram">\n        <svg class="syntax-tree"></svg>'
-    );
-    expect(html).to.not.include("Drawn when the regex stops changing.");
-  });
-
-  it("should say the syntax tree is coming before it is drawn", () => {
-    // Act
-    const html = TEMPLATE.render(explainRegex("a", "", NO_BACKTRACKING), RESOURCES);
-
-    // Assert
-    const container = /<div class="syntax-tree-diagram">([\s\S]*?)<\/div>/.exec(html)?.[1];
-    expect(container?.trim()).to.equal(
-      '<p class="note pending">Drawn when the regex stops changing.</p>'
-    );
-  });
-
-  it("should escape why the syntax tree could not be drawn", () => {
-    // Act
-    const html = TEMPLATE.render(explainRegex("a", "", NO_BACKTRACKING), RESOURCES, {
-      error: "no <wasm>",
-    });
-
-    // Assert
-    expect(html).to.include(
-      '<p class="error" role="alert"><strong>Could not draw the syntax tree:</strong> no &lt;wasm&gt;</p>'
-    );
-  });
-});
-
 describe("PanelTemplate regex101 link", () => {
   it("should link to regex101 with the regex and flags", () => {
     // Act

@@ -1,7 +1,6 @@
 /** Shared helpers for the library tests. */
 import { expect } from "chai";
 import * as path from "path";
-import { RegexParser, SyntaxTreeNode } from "../compiler";
 import { explainRegex, ExplanationNode, RegexExplanation } from "../explainer";
 import { LocatedRegex, RegexFinder } from "../locator";
 
@@ -47,9 +46,6 @@ export const WASM_DIR = path.dirname(require.resolve("@vscode/tree-sitter-wasm")
 /** One finder for every test, so each grammar loads once. */
 export const FINDER = new RegexFinder(WASM_DIR);
 
-/** Parses patterns with the grammar from the installed package. */
-export const PARSER = new RegexParser(WASM_DIR);
-
 /** A located regex as tests compare it: its parts and the source text it covers. */
 export interface FoundRegex {
   /** The pattern. */
@@ -75,20 +71,4 @@ export async function findIn(source: string, languageId: string): Promise<FoundR
     flags,
     text: source.slice(start, end),
   }));
-}
-
-/**
- * Flattens a syntax tree into `type "text" start-end` lines indented by depth, with `!` after error
- * nodes, so a whole tree can be compared with one readable literal.
- *
- * @param node The root node.
- * @param depth The root's indentation level.
- *
- * @returns One line per node, in document order.
- */
-export function syntaxOutline(node: SyntaxTreeNode, depth = 0): string[] {
-  return [
-    `${"  ".repeat(depth)}${node.type} ${JSON.stringify(node.text)} ${node.start}-${node.end}${node.error ? " !" : ""}`,
-    ...node.children.flatMap((child) => syntaxOutline(child, depth + 1)),
-  ];
 }

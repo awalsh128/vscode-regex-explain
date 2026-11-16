@@ -96,10 +96,9 @@ The panel draws the regex as a state machine: states joined by arrows, one per s
 onto separate rows, repeats loop back with their count (such as `×1+`), optional parts have a dashed
 bypass, and capture groups are boxed. Hover or focus a step to see its explanation. The full
 explanation is under **Steps**, as a Pattern and Explanation table with the regex syntax highlighted
-in Light+ or Dark+ colors to match a light or dark theme. Below it is a **Syntax Tree** diagram of
-the pattern as [tree-sitter](https://tree-sitter.github.io/)'s regex grammar parses it; hover a box
-to see all of its source text. Then come an **Input** pane and a **Match results** table that lists
-each match with its lines (such as `L3` or `L3–5`) and capture groups. Click a match to select it.
+in Light+ or Dark+ colors to match a light or dark theme. Below it are an **Input** pane and a
+**Match results** table that lists each match with its lines (such as `L3` or `L3–5`) and capture
+groups. Click a match to select it.
 
 **Open in regex101**, next to the regex, opens it on [regex101.com](https://regex101.com) in the
 JavaScript flavor, with the input text as the test string.
@@ -116,9 +115,6 @@ While the panel is open, it follows the regex you are working with: moving the c
 regex (in the languages in `regexExplain.hover.languages`), changing the selection in any file,
 hovering a regex, or editing the regex shows it in the panel. Hovering follows only while
 `regexExplain.hover.enabled` is on; the cursor and selection are followed either way.
-
-While you type in a regex, the panel updates its explanation at once but waits until the regex has
-not changed for 2 seconds before drawing the syntax tree.
 
 Turn off `regexExplain.panel.follow` to keep the panel on its regex until you explain another.
 Moving the cursor outside any regex leaves the panel as it is, and closing the panel stops it from
