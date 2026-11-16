@@ -22,9 +22,9 @@ repository has two packages, each versioned and released on its own:
 
 <video src="packages/vscode-regex-explain/images/demo.webm" controls muted width="100%"></video>
 
-The demo shows the extension hovering a regex, opening the panel, matching sample input with the
-results beside it, following the cursor, warning about a backtracking pattern, updating as the regex
-is edited, and explaining a Python regex.
+The demo shows the extension hovering a regex, opening the panel, expanding its Steps, matching
+sample input with the results beside it, following the cursor, warning about a backtracking pattern,
+updating as the regex is edited, and explaining a Python regex.
 
 See each package's README for usage. Contributor setup, testing, and publishing are in
 [CONTRIBUTING.md](CONTRIBUTING.md); architecture is in [docs/SOURCE_CODE.md](docs/SOURCE_CODE.md).
