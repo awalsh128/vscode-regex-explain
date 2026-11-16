@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="images/logo.png" alt="Regex Explain logo" width="128" height="128">
+  <img src="https://raw.githubusercontent.com/awalsh128/vscode-regex-explain/main/packages/vscode-regex-explain/images/logo.png" alt="Regex Explain logo" width="128" height="128">
 </p>
 
 <h1 align="center">Regex Explain Lab</h1>
@@ -17,18 +17,16 @@
   <a href="https://github.com/awalsh128/vscode-regex-explain/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License"></a>
 </p>
 
-<!-- prettier-ignore -->
-> [!TIP]
-> If you find this project useful, please consider supporting it
+> **Tip:** If you find this project useful, please consider supporting it
 > [as a sponsor and show some ❤️ for open source maintainers](https://github.com/sponsors/awalsh128).
 
 Regexes are found in code in nine languages, and any selected text can be explained.
 
-- :mag: Explanations on hover for regex literals and patterns passed to regex APIs.
-- :scissors: Explanations for any pattern you select, in any file.
-- :warning: Warnings for patterns that backtrack catastrophically, with an equivalent safe pattern
-  when one exists.
-- :test_tube: A panel beside the editor that explains the regex and tests it against your input.
+- 🔍 Explanations on hover for regex literals and patterns passed to regex APIs.
+- ✂️ Explanations for any pattern you select, in any file.
+- ⚠️ Warnings for patterns that backtrack catastrophically, with an equivalent safe pattern when one
+  exists.
+- 🧪 A panel beside the editor that explains the regex and tests it against your input.
 
 ---
 
