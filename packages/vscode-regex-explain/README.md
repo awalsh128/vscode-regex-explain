@@ -42,7 +42,6 @@ Regexes are found in code in nine languages, and any selected text can be explai
 - [Settings](#settings)
 - [Limitations](#limitations)
 - [Troubleshooting](#troubleshooting)
-- [License](#license)
 
 ## Installation
 
@@ -207,7 +206,3 @@ library, which you can use in your own tools. Report bugs or request features th
 [GitHub Issues](https://github.com/awalsh128/vscode-regex-explain/issues). For development and
 publishing, see
 [CONTRIBUTING.md](https://github.com/awalsh128/vscode-regex-explain/blob/main/CONTRIBUTING.md).
-
-## License
-
-[Apache 2.0](LICENSE).
