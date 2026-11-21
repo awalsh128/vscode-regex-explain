@@ -200,9 +200,8 @@ Every setting can also be set for one language:
 - **A hover from another extension appears instead:** VS Code shows every provider's hover together;
   scroll the hover to find the explanation.
 
-The explanations, regex detection, and matching come from the
+Built on the
 [`regex-explain`](https://github.com/awalsh128/vscode-regex-explain/tree/main/packages/regex-explain)
-library, which you can use in your own tools. Report bugs or request features through
-[GitHub Issues](https://github.com/awalsh128/vscode-regex-explain/issues). For development and
-publishing, see
+library. Report bugs through [Issues](https://github.com/awalsh128/vscode-regex-explain/issues); to
+contribute, see
 [CONTRIBUTING.md](https://github.com/awalsh128/vscode-regex-explain/blob/main/CONTRIBUTING.md).
