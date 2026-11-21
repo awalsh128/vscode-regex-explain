@@ -108,9 +108,11 @@ releases are the version history. Tags from before the versions were shared, suc
 - Feature branches target `staging`. A `staging` ruleset should require a pull request with passing
   CI and Pull Request checks, and block force pushes and deletion.
 - Promote with the **Promote staging to main** workflow
-  ([promote.yml](.github/workflows/promote.yml)), run by hand. It requires a successful CI run on
-  `staging`'s latest commit, fast-forwards `main` to it, then starts the library's official release.
-  It fails rather than force-pushing if `main` has commits that `staging` doesn't.
+  ([promote.yml](.github/workflows/promote.yml)), run by hand from `staging`:
+  `gh workflow run promote.yml --ref staging`. Run from any other branch, it fails at once, because
+  the Octo STS trust policy only accepts `staging`. It requires a successful CI run on `staging`'s
+  latest commit, fast-forwards `main` to it, then starts the library's official release. It fails
+  rather than force-pushing if `main` has commits that `staging` doesn't.
 - The `main` ruleset should block every update except from the
   [Octo STS](https://github.com/octo-sts/app) GitHub App, whose token the promote workflow uses (see
   [Release Credentials](#release-credentials)).
