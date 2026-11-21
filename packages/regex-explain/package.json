@@ -51,7 +51,7 @@
     "docs:api": "npm run build && typedoc --options typedoc.json"
   },
   "dependencies": {
-    "@eslint-community/regexpp": "^4.12.2",
+    "@eslint-community/regexpp": "^4.12.3",
     "regexp-ast-analysis": "^0.7.1",
     "scslre": "^0.3.0"
   },
