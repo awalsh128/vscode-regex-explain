@@ -22,6 +22,16 @@ jobs:
       actions: read # Read CI runs
       id-token: write # For OIDC: the Octo STS token that updates main
     steps:
+      - name: Require the workflow to run on staging
+        if: github.ref != 'refs/heads/staging'
+        env:
+          REF: ${{ github.ref }}
+        shell: bash
+        run: |
+          echo "::error::Promote was started on $REF. Octo STS only issues the main token to runs on staging."
+          echo "Run: gh workflow run promote.yml --ref staging"
+          exit 1
+
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
