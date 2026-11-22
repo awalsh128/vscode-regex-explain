@@ -1,0 +1,2 @@
+Select a pattern in any file, then hover it:
+^[a-z]+\d{2,4}$

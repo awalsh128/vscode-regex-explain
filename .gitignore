@@ -30,3 +30,6 @@ reports/
 
 # Generated API docs
 **/docs/api/
+
+# Demo recordings: frames used to check a GIF before it ships
+packages/vscode-regex-explain/images/demo/.frames/
