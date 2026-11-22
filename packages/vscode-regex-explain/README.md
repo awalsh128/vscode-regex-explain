@@ -92,6 +92,9 @@ The command explains the selection, else the regex at the cursor, else a pattern
 
 ## Advanced Usage
 
+More short recordings are in the
+[demo gallery](https://github.com/awalsh128/vscode-regex-explain/blob/main/docs/demos.md).
+
 ### Explanation Panel
 
 The panel draws the regex as a state machine: states joined by arrows, one per step, colored by kind
