@@ -103,6 +103,10 @@ in Light+ or Dark+ colors to match a light or dark theme. Below it are an **Inpu
 **Match results** table that lists each match with its lines (such as `L3` or `L3–5`) and capture
 groups. Click a match to select it.
 
+Type text into the **Input** pane and the **Match results** table lists each match as you type.
+
+<img src="https://raw.githubusercontent.com/awalsh128/vscode-regex-explain/main/packages/vscode-regex-explain/images/demo/panel-match.gif" alt="Typing text into the explanation panel's Input pane lists the match in the Match results table" width="800">
+
 **Open in regex101**, next to the regex, opens it on [regex101.com](https://regex101.com) in the
 JavaScript flavor, with the input text as the test string.
 
@@ -118,6 +122,10 @@ While the panel is open, it follows the regex you are working with: moving the c
 regex (in the languages in `regexExplain.hover.languages`), changing the selection in any file,
 hovering a regex, or editing the regex shows it in the panel. Hovering follows only while
 `regexExplain.hover.enabled` is on; the cursor and selection are followed either way.
+
+Open the panel, then move the cursor from one regex to the next and the panel keeps up.
+
+<img src="https://raw.githubusercontent.com/awalsh128/vscode-regex-explain/main/packages/vscode-regex-explain/images/demo/panel-follow.gif" alt="Moving the cursor between regexes updates the explanation panel to show the regex under the cursor" width="800">
 
 Turn off `regexExplain.panel.follow` to keep the panel on its regex until you explain another.
 Moving the cursor outside any regex leaves the panel as it is, and closing the panel stops it from
