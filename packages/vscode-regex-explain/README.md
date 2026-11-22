@@ -28,6 +28,12 @@ Regexes are found in code in nine languages, and any selected text can be explai
   exists.
 - 🧪 A panel beside the editor that explains the regex and tests it against your input.
 
+Hover a regex to see each part explained step by step.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/awalsh128/vscode-regex-explain/main/packages/vscode-regex-explain/images/demo/hover-literal.gif" alt="Hovering a regex literal in TypeScript shows a step-by-step explanation of each part" width="800">
+</p>
+
 ---
 
 ## Contents
