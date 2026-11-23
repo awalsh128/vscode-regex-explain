@@ -15,7 +15,7 @@ const VIEW_TYPE = "regexExplain.explanation";
 export const panelFollow: Scene = {
   name: "panel-follow",
   async run() {
-    const editor = await openFile("sample.ts", 1, 40);
+    const editor = await openFile("sample.ts", 4, 24);
     await sleep(800);
     await runFromPalette(EXPLAIN_TITLE);
     await waitFor("the explanation panel", () => findWebviewTab(VIEW_TYPE));
@@ -24,9 +24,9 @@ export const panelFollow: Scene = {
       viewColumn: editor.viewColumn,
       preserveFocus: false,
     });
-    placeCursor(editor, 2, 40); // the phone regex: the panel follows after its 200 ms delay
+    placeCursor(editor, 3, 24); // the slow regex: the panel follows after its 200 ms delay
     await sleep(3500);
-    placeCursor(editor, 3, 24); // the slow regex
+    placeCursor(editor, 4, 24); // back to the short hex regex
     await sleep(3500);
   },
 };
