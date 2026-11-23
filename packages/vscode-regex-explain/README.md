@@ -17,9 +17,6 @@
   <a href="https://github.com/awalsh128/vscode-regex-explain/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License"></a>
 </p>
 
-> **Tip:** If you find this project useful, please consider supporting it
-> [as a sponsor and show some ❤️ for open source maintainers](https://github.com/sponsors/awalsh128).
-
 Regexes are found in code in nine languages, and any selected text can be explained.
 
 - 🔍 Explanations on hover for regex literals and patterns passed to regex APIs.
@@ -34,11 +31,21 @@ Hover a regex to see each part explained step by step.
   <img src="https://raw.githubusercontent.com/awalsh128/vscode-regex-explain/main/packages/vscode-regex-explain/images/demo/hover-literal.gif" alt="Hovering a regex literal in TypeScript shows a step-by-step explanation of each part" width="800">
 </p>
 
----
+<!-- prettier-ignore -->
+<p align="center">
+  <a href="https://github.com/sponsors/awalsh128"><img src="https://img.shields.io/badge/Sponsor-%E2%9D%A4-db61a2?style=for-the-badge&logo=githubsponsors&logoColor=white" alt="Sponsor awalsh128"></a>
+</p>
+
+<p align="center">
+  Free and open source, and kept up by one person.<br />
+  If it saves you time, <a href="https://github.com/sponsors/awalsh128">sponsor it monthly</a> or
+  <a href="https://github.com/sponsors/awalsh128?frequency=one-time">leave a small one-time tip</a>. Every bit
+  helps.
+</p>
 
 ## Contents
 
-- [Installation](#installation)
+- [Installation](#quick-start)
 - [Basic Usage](#basic-usage)
 - [Advanced Usage](#advanced-usage)
   - [Explanation Panel](#explanation-panel)
@@ -49,7 +56,7 @@ Hover a regex to see each part explained step by step.
 - [Limitations](#limitations)
 - [Troubleshooting](#troubleshooting)
 
-## Installation
+## Quick Start
 
 Install Regex Explain from the
 [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=awalsh128.regex-explain)
