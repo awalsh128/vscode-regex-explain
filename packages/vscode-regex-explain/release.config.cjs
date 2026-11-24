@@ -13,7 +13,8 @@ module.exports = {
   tagFormat: "v${version}",
   plugins: [
     // Replaces @semantic-release/commit-analyzer. Node.js 24 loads it without a build step.
-    "../../scripts/vscode-release/release-version.mts",
+    // Breaking commits count as features unless the workflow sets ALLOW_MAJOR (its `major` input).
+    ["../../scripts/vscode-release/release-version.mts", { requireAllowMajor: true }],
     ["@semantic-release/release-notes-generator", { preset: "conventionalcommits" }],
     // Packages the VSIX for the GitHub release only. The workflow publishes it to the registries
     // with trusted publishing.
