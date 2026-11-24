@@ -18,9 +18,10 @@
  * pre-release would land on an even minor, so both are refused with guidance instead.
  *
  * By default breaking commits always call for a major bump. With the plugin option
- * `{ requireAllowMajor: true }` they count as features unless the run sets `ALLOW_MAJOR` to `true` or
- * `1`, so a young project does not reach 2.0.0 by accident and a breaking change can ship as a
- * pre-release first. The workflow that runs semantic-release has to pass `ALLOW_MAJOR` through.
+ * `{ requireAllowMajor: true }` they count as features unless the run sets `ALLOW_MAJOR` to
+ * `true` or `1`, so a young project does not reach 2.0.0 by accident and a breaking change can
+ * ship as a pre-release first. The workflow that runs semantic-release has to pass
+ * `ALLOW_MAJOR` through.
  *
  * release.config.cjs loads it. Node.js 24 runs it without a build step by stripping its types, so
  * it uses only erasable TypeScript syntax.
