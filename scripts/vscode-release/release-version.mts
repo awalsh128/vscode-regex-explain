@@ -2,9 +2,8 @@
  * Semantic-release plugin that chooses each release's version bump from Conventional Commits and VS
  * Code's pre-release convention: releases use even minor versions (1.0.x, 1.2.x) and pre-releases
  * odd ones (1.1.x, 1.3.x), so the two never collide. It replaces
- * `@semantic-release/commit-analyzer` in the extension's release.config.cjs, and reads
- * `VSCE_PRE_RELEASE` the same way semantic-release-vsce does, and `ALLOW_MAJOR` to let breaking
- * commits bump the major version.
+ * `@semantic-release/commit-analyzer` in release.config.cjs, and reads
+ * `VSCE_PRE_RELEASE` the same way semantic-release-vsce does.
  *
  * | Last version | Run         | Commits             | Bump            |
  * | ------------ | ----------- | ------------------- | --------------- |
@@ -14,16 +13,11 @@
  * | even minor   | release     | fix                 | patch           |
  * | any          | release     | breaking            | major           |
  *
- * Breaking commits only bump the major version when the run opts in with `ALLOW_MAJOR`. Otherwise
- * they count as features, so a young project does not reach 2.0.0 by accident, and a breaking
- * change can go out as a pre-release first.
- *
  * A feature released directly from an even minor would need to skip an odd minor, and a breaking
  * pre-release would land on an even minor, so both are refused with guidance instead.
  *
- * It is the repository's only version policy (packages/vscode-regex-explain/release.config.cjs).
- * The npm library shares the extension's version, so it is published only for releases (even
- * minors), at the same number.
+ * release.config.cjs loads it. Node.js 24 runs it without a build step by stripping its types, so
+ * it uses only erasable TypeScript syntax.
  */
 
 /** A semver bump that semantic-release applies to the last version. */
@@ -79,20 +73,8 @@ export function changeType(messages: readonly string[]): ReleaseType | null {
     .map(commitReleaseType)
     .reduce<ReleaseType | null>(
       (largest, type) => (type && (!largest || RANK[type] > RANK[largest]) ? type : largest),
-      null
+      null,
     );
-}
-
-/**
- * Keeps breaking commits from bumping the major version unless the run allows it.
- *
- * @param change The bump the commits call for, or null.
- * @param allowMajor Whether this run may bump the major version.
- *
- * @returns The bump, with major lowered to minor when it is not allowed.
- */
-export function capChange(change: ReleaseType | null, allowMajor: boolean): ReleaseType | null {
-  return change === "major" && !allowMajor ? "minor" : change;
 }
 
 /**
@@ -110,7 +92,7 @@ export function capChange(change: ReleaseType | null, allowMajor: boolean): Rele
 export function nextReleaseType(
   change: ReleaseType | null,
   lastVersion: string | undefined,
-  preRelease: boolean
+  preRelease: boolean,
 ): ReleaseType | null {
   if (!lastVersion) {
     if (preRelease) {
@@ -124,7 +106,7 @@ export function nextReleaseType(
     if (change === "major") {
       throw new Error(
         "Breaking changes would make the pre-release an even minor version; publish them as a " +
-          "release instead."
+          "release instead.",
       );
     }
     // The first pre-release after a release opens the next odd minor; later ones stay on it.
@@ -140,7 +122,7 @@ export function nextReleaseType(
   if (change === "minor") {
     throw new Error(
       `Features after ${lastVersion} would skip a minor version; publish them as a pre-release ` +
-        "first (pre-release), then release."
+        "first (pre_release), then release.",
     );
   }
   return change;
@@ -156,19 +138,14 @@ export function nextReleaseType(
  */
 export async function analyzeCommits(
   _pluginConfig: unknown,
-  context: AnalyzeCommitsContext
+  context: AnalyzeCommitsContext,
 ): Promise<ReleaseType | null> {
   const preRelease = /^(true|1)$/i.test(context.env.VSCE_PRE_RELEASE ?? "");
-  const allowMajor = /^(true|1)$/i.test(context.env.ALLOW_MAJOR ?? "");
-  const called = changeType(context.commits.map((commit) => commit.message));
-  const change = capChange(called, allowMajor);
+  const change = changeType(context.commits.map((commit) => commit.message));
   const type = nextReleaseType(change, context.lastRelease.version, preRelease);
-  if (change !== called) {
-    context.logger.log("Breaking commits are counted as features; set ALLOW_MAJOR to bump major.");
-  }
   context.logger.log(
     `Commits call for ${change ?? "no release"}; publishing ` +
-      `${preRelease ? "a pre-release" : "a release"} with ${type ?? "no"} bump.`
+      `${preRelease ? "a pre-release" : "a release"} with ${type ?? "no"} bump.`,
   );
   return type;
 }

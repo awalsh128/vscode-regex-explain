@@ -62,25 +62,24 @@ packages/regex-explain/          The npm library (each package keeps a LICENSE c
                                  and a release.config.cjs for semantic-release)
 packages/vscode-regex-explain/   The VS Code extension, its test workspace, and its icon
                                  (images/logo.png, rendered from images/logo.svg)
-scripts/               Consistency checks, setup, release versioning, registry publishing, label
-                       sync (own tsconfig)
+scripts/               Consistency checks, setup, the panel preview, and the shared release
+                       versioning plugin in vscode-release/ (own tsconfig)
 tsconfig.base.json     Compiler options shared by every project
 tsconfig.json          Build entry point referencing the packages and scripts
 ```
 
 ## Build
 
-| Output                                                     | Produced by                                                 | Used for                                    |
-| ---------------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------- |
-| `packages/regex-explain/dist/cjs/`                         | `tsc -p tsconfig.build.json` (with `.d.ts`)                 | npm `require` and types                     |
-| `packages/regex-explain/dist/esm/index.mjs`                | esbuild, dependencies external                              | npm `import`                                |
-| `packages/*/out/`                                          | `tsc -b` (sources and tests)                                | Tests                                       |
-| `packages/vscode-regex-explain/dist/extension.js`          | `bundle.mjs`: esbuild, all but `vscode`                     | The extension (`main`)                      |
-| `packages/vscode-regex-explain/dist/matchWorker.js`        | `bundle.mjs`: esbuild from `matcher.ts`, with `findMatches` | `RegexMatcher`'s worker                     |
-| `packages/vscode-regex-explain/dist/webview.js`            | `bundle.mjs`: esbuild for the browser, with vscode-elements | The panel script                            |
-| `packages/vscode-regex-explain/dist/panel.*`, `parts.html` | `bundle.mjs`: copies from `src/webview/`                    | `PanelTemplate`, the page                   |
-| `packages/vscode-regex-explain/dist/*.wasm`                | `bundle.mjs`: copies the runtime and `GRAMMARS`             | Loaded by `RegexFinder`                     |
-| `out/scripts/`                                             | `tsc -b`                                                    | The extension's `release.config.cjs` plugin |
+| Output                                                     | Produced by                                                 | Used for                  |
+| ---------------------------------------------------------- | ----------------------------------------------------------- | ------------------------- |
+| `packages/regex-explain/dist/cjs/`                         | `tsc -p tsconfig.build.json` (with `.d.ts`)                 | npm `require` and types   |
+| `packages/regex-explain/dist/esm/index.mjs`                | esbuild, dependencies external                              | npm `import`              |
+| `packages/*/out/`                                          | `tsc -b` (sources and tests)                                | Tests                     |
+| `packages/vscode-regex-explain/dist/extension.js`          | `bundle.mjs`: esbuild, all but `vscode`                     | The extension (`main`)    |
+| `packages/vscode-regex-explain/dist/matchWorker.js`        | `bundle.mjs`: esbuild from `matcher.ts`, with `findMatches` | `RegexMatcher`'s worker   |
+| `packages/vscode-regex-explain/dist/webview.js`            | `bundle.mjs`: esbuild for the browser, with vscode-elements | The panel script          |
+| `packages/vscode-regex-explain/dist/panel.*`, `parts.html` | `bundle.mjs`: copies from `src/webview/`                    | `PanelTemplate`, the page |
+| `packages/vscode-regex-explain/dist/*.wasm`                | `bundle.mjs`: copies the runtime and `GRAMMARS`             | Loaded by `RegexFinder`   |
 
 For type checking and bundling, the extension's two `tsconfig.json` files map `regex-explain` to the
 library's `src/index.ts` with `paths` and reference the library's project. Editors therefore see the

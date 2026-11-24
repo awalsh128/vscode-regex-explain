@@ -2,7 +2,7 @@ name: Publish Extension
 
 # semantic-release picks the extension's next version from Conventional Commits since the last v*
 # tag, then tags it and creates the GitHub release with the VSIX; the publish job then publishes
-# that VSIX to both registries with scripts/ops.ts. Releases never commit, because main only
+# that VSIX to both registries with vsce and ovsx. Releases never commit, because main only
 # fast-forwards to staging (see promote.yml). Runs that find no release-worthy commits publish
 # nothing. The same version is then published to npm as the library, by starting
 # publish-library.yml (releases go to npm's `latest`, pre-releases to `next`). The library and the
@@ -75,8 +75,8 @@ jobs:
           ignore-scripts: true
           cache: false
 
-      # Builds out/scripts/release-version.js, which release.config.cjs loads, and the library's
-      # dist/, which packaging the extension bundles.
+      # Builds the library's dist/, which packaging the extension bundles. release.config.cjs loads
+      # scripts/vscode-release/release-version.mts directly.
       - name: Compile
         run: npm run compile
 
@@ -109,9 +109,9 @@ jobs:
           TAG: ${{ steps.tag.outputs.tag }}
         run: gh release edit "$TAG" --prerelease
 
-  # Publishes the GitHub release's VSIX, so the registries get the file the release carries. ops.ts
-  # skips registries that already have the version, so after a partial failure, Re-run failed jobs
-  # publishes to the rest.
+  # Publishes the GitHub release's VSIX, so the registries get the file the release carries.
+  # --skip-duplicate skips a registry that already has the version, and one registry failing does
+  # not stop the other, so after a partial failure, Re-run failed jobs publishes to the rest.
   publish:
     needs: release
     if: ${{ needs.release.outputs.tag != '' }}
@@ -142,19 +142,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.release.outputs.tag }}
-          PRE_RELEASE: ${{ inputs.pre-release }}
         run: |
-          set -euo pipefail
+          set -uo pipefail
           version="${TAG#v}"
           vsix="$RUNNER_TEMP/regex-explain-$version.vsix"
-          gh release download "$TAG" --pattern "regex-explain-$version.vsix" --output "$vsix"
-          # ops.ts reads the version from package.json to find the registries that lack it.
-          npm pkg set version="$version" --prefix packages/vscode-regex-explain
-          args=(publish --vsix "$vsix")
-          if [[ "$PRE_RELEASE" == "true" ]]; then
-            args+=(--pre-release)
-          fi
-          npm run ops -- "${args[@]}"
+          gh release download "$TAG" --pattern "regex-explain-$version.vsix" --output "$vsix" || exit 1
+          failed=0
+          npx --yes @vscode/vsce@4.1.0 publish --packagePath "$vsix" --oidc --skip-duplicate \
+            || failed=1
+          npx --yes ovsx@1.3.0 publish "$vsix" --trusted-publishing --skip-duplicate \
+            || failed=1
+          exit "$failed"
 
   # The library shares the extension's version, so a release publishes it to npm at the same tag.
   # publish-library.yml is started on its own, not called, because npm trusted publishing is bound
