@@ -13,3 +13,6 @@ packages/vscode-regex-explain/src/webview/*.html
 .stryker-tmp/
 reports/
 **/docs/api/
+
+# The release-version.mts plugin is shipped by gh-dev-powerpack; keep it byte-identical.
+scripts/vscode-release/

@@ -54,7 +54,6 @@
     "lint": "eslint --max-warnings 0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "ops": "tsx scripts/ops.ts",
     "preview-panel": "tsx scripts/preview-panel.ts",
     "test": "npm run compile && npm run test:unit && npm run test:integration",
     "test:unit": "mocha --require tsx \"packages/*/out/test/*.test.js\" \"packages/vscode-regex-explain/src/webview/test/*.test.ts\"",
@@ -63,7 +62,6 @@
     "test:mutation": "stryker run",
     "package": "npm run compile && npm run package --prefix packages/vscode-regex-explain",
     "setup": "npm install && tsx scripts/dev.ts setup",
-    "sync-labels": "tsx scripts/sync-labels.ts",
     "refreshlock": "npm i --package-lock-only"
   },
   "devDependencies": {

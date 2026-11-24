@@ -1,13 +1,21 @@
 name: Sync Labels
 
+# Creates and updates labels from .github/labels.yaml. Never deletes labels (skip-delete).
+# On pull requests that change the file it only does a dry run, so the log shows what would change.
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
       - ".github/labels.yaml"
+      - ".github/workflows/sync-labels.yml"
+  pull_request:
+    paths:
+      - ".github/labels.yaml"
+      - ".github/workflows/sync-labels.yml"
 
-permissions: {}
+permissions:
+  contents: read
 
 jobs:
   sync:
@@ -17,18 +25,14 @@ jobs:
       contents: read
       issues: write
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      # This job can edit labels, so dependencies' install scripts don't run.
-      - name: Setup
-        uses: ./.github/actions/setup
-        with:
-          ignore-scripts: true
-
       - name: Sync labels
-        run: npm run sync-labels
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: crazy-max/ghaction-github-labeler@548a7c3603594ec17c819e1239f281a3b801ab4d # v6.0.0
+        with:
+          yaml-file: .github/labels.yaml
+          skip-delete: true
+          dry-run: ${{ github.event_name == 'pull_request' }}

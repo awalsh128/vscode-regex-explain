@@ -196,8 +196,8 @@ tag. It never picks a version of its own.
 Versions follow VS Code's
 [pre-release convention](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#pre-release-extensions):
 releases use even minor versions (1.0.x, 1.2.x) and pre-releases odd ones (1.1.x, 1.3.x).
-[scripts/release-version.ts](scripts/release-version.ts) turns the commits into a bump that keeps
-that split:
+[scripts/vscode-release/release-version.mts](scripts/vscode-release/release-version.mts) turns the
+commits into a bump that keeps that split:
 
 | Last version | Run         | Commits             | Next version    |
 | ------------ | ----------- | ------------------- | --------------- |
@@ -230,16 +230,13 @@ After checking that CI passed on the commit, a run:
    publishes nothing.
 2. Tags `vX.Y.Z` and creates a GitHub release with the notes and the packaged VSIX.
 3. Publishes that release's VSIX to the Visual Studio Marketplace and Open VSX with
-   `npm run ops -- publish --vsix` ([scripts/ops.ts](scripts/ops.ts)), at the version of the newest
-   `v*` tag on the commit, skipping a registry that already has it. After a partial failure, use
-   **Re-run failed jobs**: the commit already carries the tag, so the rerun publishes it to the
-   remaining registries.
+   `vsce publish --oidc` and `ovsx publish --trusted-publishing`, at the version of the newest `v*`
+   tag on the commit, with `--skip-duplicate` so a registry that already has it is skipped. After a
+   partial failure, use **Re-run failed jobs**: the commit already carries the tag, so the rerun
+   publishes it to the remaining registries.
 4. For a release (not a pre-release), starts
    [publish-library.yml](.github/workflows/publish-library.yml) with the tag, which publishes the
    library to npm at the same version.
-
-`npm run ops -- publish --dry-run` packages the VSIX and lists the registries that do not have the
-version yet, from any machine.
 
 ### Trusted Publishing
 
@@ -251,7 +248,7 @@ short-lived credentials. Each registry must list this repository, the workflow f
 | ------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | npm                 | `publish-library.yml`   | The package's settings on npmjs.com ([npm trusted publishing](https://docs.npmjs.com/trusted-publishers)). Trusted publishers are set on an existing package, so a new package's first version is published by hand. |
 | VS Code Marketplace | `publish-extension.yml` | The `awalsh128` publisher's trusted publishers; `vsce publish --oidc` exchanges the token.                                                                                                                           |
-| Open VSX            | `publish-extension.yml` | The namespace's [trusted publishers](https://open-vsx.org/user-settings/trusted-publishers); `ops.ts` exchanges the token for a publishing token.                                                                    |
+| Open VSX            | `publish-extension.yml` | The namespace's [trusted publishers](https://open-vsx.org/user-settings/trusted-publishers); `ovsx publish --trusted-publishing` exchanges the token for a publishing token.                                         |
 
 Run a dry run of the matching workflow after changing the release configuration. A dry run checks
 the configuration but does not publish.

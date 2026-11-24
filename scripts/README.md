@@ -26,35 +26,12 @@ The pre-commit hook runs it, and so does CI. It reads the working tree, not only
 `.husky/`, then `dev.ts setup`, which installs the extensions in `.vscode/extensions.json` with the
 `code` CLI (listing them if the CLI is missing), and runs `npm run compile`.
 
-## `release-version.ts`
+## `vscode-release/release-version.mts`
 
 A semantic-release `analyzeCommits` plugin that keeps releases on even minor versions and
-pre-releases on odd ones; see [CONTRIBUTING.md](../CONTRIBUTING.md#publishing-the-extension). The
-extension's `release.config.cjs` loads it from `out/scripts/`, so run `npx tsc -b` before
-semantic-release.
-
-## `sync-labels.ts`
-
-Creates and updates GitHub labels from [.github/labels.yaml](../.github/labels.yaml); it never
-deletes labels. The **Sync Labels** workflow runs it when that file changes on `main`. Locally:
-
-```sh
-GITHUB_TOKEN=... GITHUB_REPOSITORY=awalsh128/vscode-regex-explain npm run sync-labels
-```
-
-## `ops.ts`
-
-Release operations for the extension's registries, run as `npm run ops -- <command>`:
-
-- `list` shows the versions published to the Visual Studio Marketplace and Open VSX.
-- `publish [--dry-run] [--pre-release] [--vsix <path>]` packages the version in
-  `packages/vscode-regex-explain/package.json`, or takes the VSIX of that version at `--vsix`, and
-  publishes it to each registry that lacks it. It uses trusted publishing only, so it publishes from
-  the Publish Extension workflow, which passes the GitHub release's VSIX; `--dry-run` works
-  anywhere. It refuses a version whose minor does not match the channel (even for releases, odd for
-  pre-releases).
-- `deprecate [--replacement <publisher.extension> | --setting <setting.id>] [--reason <text>]`
-  prints the deprecation requests to submit by hand, since neither registry has an API for them.
+pre-releases on odd ones, shipped by gh-dev-powerpack (do not edit it here; see
+[CONTRIBUTING.md](../CONTRIBUTING.md#publishing-the-extension)). The extension's
+`release.config.cjs` loads it directly, because Node.js 24 strips its types without a build step.
 
 ## `preview-panel.ts`
 
